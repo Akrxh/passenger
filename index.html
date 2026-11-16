@@ -292,7 +292,6 @@ body{background:#050505}
 @media(max-width:650px){.brand-mark{width:31px;height:31px}}
 </style>
 
-
 <style id="dreamcore-editorial-refinement">
 /* Quiet editorial treatment: typography, spacing and hairline dividers instead of UI tiles. */
 :root{--yellow:#f0d84a;--yellow-soft:#f7e98b}
@@ -401,7 +400,6 @@ button{font-family:inherit}
 }
 </style>
 
-
 <style id="dreamcore-maintenance-gate">
 .maintenance-screen{
   position:fixed;inset:0;z-index:10000;display:grid;place-items:center;
@@ -438,7 +436,6 @@ button{font-family:inherit}
   </div>
 </div>
 
-
 <div class="auth-screen" id="authScreen">
   <div class="auth-shell">
     <div class="auth-brand"><span class="auth-mark"><svg class="plane-doodle" viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M2 34 Q12 40 23 29 Q26 26 23 23 L12 15 Q10 13 13 13 L24 19 Q27 20 29 17 L39 4 Q42 1 43 3 Q45 5 42 8 L34 20 Q32 23 35 25 L44 33 Q46 35 44 36 Q42 38 39 35 L29 27 Q27 25 25 28 Q13 40 2 34Z"/></svg></span><div><b>Dreamcore</b><small>YOUR STUDY. YOUR FLIGHTPATH.</small></div></div>
@@ -450,7 +447,7 @@ button{font-family:inherit}
         <label class="auth-label" for="authName" id="authNameLabel">CALLSIGN / NAME</label>
         <input id="authName" class="auth-input hidden" type="text" maxlength="40" autocomplete="name" placeholder="Your passenger name">
         <label class="auth-label" for="authUsername">USERNAME</label>
-        <input id="authUsername" class="auth-input" type="text" maxlength="20" autocomplete="username" required placeholder="e.g. sid_aviator">
+        <input id="authUsername" class="auth-input" type="text" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="e.g. sid_aviator">
         <label class="auth-label" for="authPassword">PASSWORD</label>
         <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters">
         <button class="auth-submit" id="authSubmit" type="submit">SIGN IN</button>
@@ -551,7 +548,7 @@ button{font-family:inherit}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile,deleteUser} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,getDocs,doc,getDoc,setDoc,onSnapshot,runTransaction,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* Firebase Web App config. Keep apiKey empty to use the included demo flights.
@@ -577,7 +574,7 @@ const demoFlights=[
  {id:"ff204",flightNumber:"FF 204",origin:"BLR",destination:"MUM",originName:"Bengaluru",destinationName:"Mumbai",distanceKm:840,departureAt:plusMinutes(18),arrivalAt:plusMinutes(108)},
  {id:"ff309",flightNumber:"FF 309",origin:"HYD",destination:"CHE",originName:"Hyderabad",destinationName:"Chennai",distanceKm:520,departureAt:plusMinutes(130),arrivalAt:plusMinutes(210)}
 ];
-let appInstance=null,auth=null,db=null,currentUser=null,authMode="login",profileSaveTimer=null;
+let appInstance=null,auth=null,db=null,currentUser=null,authMode="login",profileSaveTimer=null,flightRefreshTimer=null;
 let flights=[],selectedFlight=null,selectedSeat=null,reservation=null,seatUnsubscribe=null;
 let tasks=[],currentFlight=null,flightStartedAt=null,flightTimer=null,dimTimer=null,demoReservations={};
 
@@ -590,6 +587,7 @@ function updatePilot(){const xp=Number(localStorage.getItem("focusFlightXP")||0)
 function seatSvg(state){const back=state==="selected"?"#d8c333":state==="reserved"?"#414747":"#67717b",cushion=state==="selected"?"#f2d62e":state==="reserved"?"#555c5d":"#87919d",outline=state==="selected"?"#fff2a5":"#aab1b5";return `<svg class="seat-icon" viewBox="0 0 54 58" aria-hidden="true"><path d="M12 9 Q12 4 18 4 H36 Q42 4 42 10 L45 32 Q45 38 39 38 H15 Q9 38 9 32 Z" fill="${back}" stroke="${outline}" stroke-opacity=".2"/><path d="M15 12 Q15 9 19 9 H35 Q39 9 39 13 L37 27 Q36 31 32 31 H22 Q18 31 17 27 Z" fill="${cushion}"/><rect x="8" y="32" width="38" height="13" rx="5" fill="${state==="selected"?"#d1b72c":"#4d555d"}"/><path d="M12 44 L9 51 H17 L19 45 M42 44 L45 51 H37 L35 45" fill="#7d858a"/><path d="M6 31 H10 M44 31 H48" stroke="#586064" stroke-width="4" stroke-linecap="round"/></svg>`}
 function barcode(){const seed=(selectedFlight?.id||"ff")+(reservation?.seat||"");let n=0;for(let i=0;i<seed.length;i++)n=(n*31+seed.charCodeAt(i))>>>0;let out="";for(let i=0;i<92;i++){n=(n*1664525+1013904223)>>>0;const w=1+(n%3),gap=(n>>>4)%3;out+=`<i style="width:${w}px;opacity:${.65+((n>>>8)%35)/100};margin-right:${gap}px"></i>`}$("ticketBarcode").innerHTML=out}
 
+/* ───────── Username sign-in (simple: username + password, nothing else) ───────── */
 function setAuthError(message){$("authError").textContent=message;$("authError").classList.remove("hidden")}
 function clearAuthError(){$("authError").textContent="";$("authError").classList.add("hidden")}
 function setAuthMode(mode){
@@ -603,64 +601,55 @@ function setAuthMode(mode){
  $("authPassword").autocomplete=signup?"new-password":"current-password";
  $("authSubmit").textContent=signup?"CREATE ACCOUNT":"SIGN IN";
  $("authSwitch").textContent=signup?"Already have an account? Sign in":"Create an account";
- 
 }
 $("authSwitch").addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
 function authMessage(error){
  const code=error?.code||"";
+ const wrong="Wrong username or password.";
  const messages={
-  "auth/invalid-email":"The internal account identifier was rejected. Check your Firebase Authentication settings.",
-  "auth/user-not-found":"That username does not exist. Check it or create an account.",
-  "auth/wrong-password":"Incorrect password. Try again.",
-  "auth/invalid-credential":"Username or password is incorrect.",
-  "auth/email-already-in-use":"This username account already exists. Try signing in.",
+  "auth/invalid-email":"That username can't be used. Use letters, numbers, dots, underscores or hyphens.",
+  "auth/user-not-found":wrong,
+  "auth/wrong-password":wrong,
+  "auth/invalid-credential":wrong,
+  "auth/invalid-login-credentials":wrong,
+  "auth/missing-password":"Enter your password.",
+  "auth/email-already-in-use":"That username is already taken. Choose another, or sign in.",
   "auth/weak-password":"Use a password with at least 6 characters.",
   "auth/too-many-requests":"Too many attempts. Wait a little and try again.",
   "auth/network-request-failed":"Network error. Check your internet connection.",
-  "auth/operation-not-allowed":"Enable Email/Password under Firebase Authentication → Sign-in method. The passenger still signs in with a username."
+  "auth/operation-not-allowed":"Sign-in is not switched on yet. In Firebase, enable Authentication → Sign-in method → Email/Password."
  };
- return messages[code]||error?.message||"Authentication failed. Please try again.";
+ return messages[code]||error?.message||"Sign-in failed. Please try again.";
 }
 function normalizeUsername(value){return value.trim().toLowerCase()}
 function validUsername(value){return /^[a-z0-9][a-z0-9._-]{2,19}$/.test(value)&&!/[._-]{2}/.test(value)}
+/* Same hidden identifier as before, so existing passenger accounts keep working. */
 function internalAuthEmail(username){return `${username}@accounts.focusflight.app`}
 $("authForm").addEventListener("submit",async event=>{
  event.preventDefault();clearAuthError();
- if(!auth||!db){setAuthError("Add your Firebase configuration and enable Email/Password Authentication. The passenger account uses a username; no personal email is needed.");return}
+ if(!auth||!db){setAuthError("The account system is not connected. Check the Firebase configuration in this file.");return}
  const username=normalizeUsername($("authUsername").value);
  const password=$("authPassword").value;
  const callsign=$("authName").value.trim()||username;
- if(!validUsername(username)){setAuthError("Choose a username 3–20 characters long, using letters, numbers, dots, underscores or hyphens. It must start with a letter or number.");return}
+ if(!validUsername(username)){setAuthError("Username: 3–20 characters, using letters, numbers, dots, underscores or hyphens, starting with a letter or number.");return}
  $("authSubmit").disabled=true;
  try{
-  const usernameRef=doc(db,"usernames",username);
   if(authMode==="signup"){
    if(password.length<6)throw new Error("Use a password with at least 6 characters.");
-   const existing=await getDoc(usernameRef);
-   if(existing.exists())throw new Error("That username is already taken. Choose another.");
+   /* The hidden sign-in email is unique per username, so Firebase itself rejects duplicates. */
    const credential=await createUserWithEmailAndPassword(auth,internalAuthEmail(username),password);
+   await updateProfile(credential.user,{displayName:callsign}).catch(()=>{});
    try{
-    await runTransaction(db,async transaction=>{
-     const usernameSnap=await transaction.get(usernameRef);
-     if(usernameSnap.exists())throw new Error("That username was just claimed. Choose another.");
-     transaction.set(usernameRef,{uid:credential.user.uid,username,createdAt:serverTimestamp()});
-     transaction.set(doc(db,"users",credential.user.uid),{
-      username,displayName:callsign,airMiles:0,pilotRank:"Cadet",tasks:[],
-      createdAt:serverTimestamp(),updatedAt:serverTimestamp()
-     });
-    });
-    await updateProfile(credential.user,{displayName:callsign});
-   }catch(claimError){
-    await deleteUser(credential.user).catch(()=>{});
-    throw claimError;
-   }
+    await setDoc(doc(db,"users",credential.user.uid),{
+     username,displayName:callsign,airMiles:0,pilotRank:"Cadet",tasks:[],
+     createdAt:serverTimestamp(),updatedAt:serverTimestamp()
+    },{merge:true});
+   }catch(profileError){console.error("Profile setup failed (will retry on next save):",profileError)}
   }else{
-   const usernameSnap=await getDoc(usernameRef);
-   if(!usernameSnap.exists())throw new Error("That username does not exist. Check it or create an account.");
    await signInWithEmailAndPassword(auth,internalAuthEmail(username),password);
   }
  }catch(error){setAuthError(error.code?authMessage(error):error.message)}
- finally{$("authSubmit").disabled=false}
+ finally{$("authSubmit").disabled=false;$("authPassword").value=""}
 });
 $("accountButton").addEventListener("click",async()=>{
  if(!currentUser)return;
@@ -674,7 +663,6 @@ function saveProfile(){
   try{
    await setDoc(doc(db,"users",currentUser.uid),{
     displayName:currentUser.displayName||$("accountLabel").textContent,
-    username:currentUser.email?.split("@")[0]||"",
     username:currentUser.email?.split("@")[0]||"",
     tasks:tasks.map(t=>({name:t.name,done:!!t.done})),
     airMiles:Number(localStorage.getItem("focusFlightXP")||0),
@@ -706,7 +694,7 @@ async function loadFlights(){
   console.error("Flight loading failed:",error);
   flights=demoFlights;$("connection").textContent="● DEMO FLIGHTS";$("connection").title=error.message;
  }
- renderFlights();setInterval(renderFlights,15000);
+ renderFlights();clearInterval(flightRefreshTimer);flightRefreshTimer=setInterval(renderFlights,15000);
 }
 
 let maintenanceUnsubscribe=null;
@@ -733,8 +721,9 @@ function renderMaintenanceGate(mode,data={}){
   foot.textContent="CONNECTION CHECK FAILED";
  }
 }
-function startMaintenanceWatch(){
- renderMaintenanceGate("checking");
+function startMaintenanceWatch(quiet){
+ if(maintenanceUnsubscribe){maintenanceUnsubscribe();maintenanceUnsubscribe=null}
+ if(!quiet)renderMaintenanceGate("checking");
  const statusRef=doc(db,"systemSettings","maintenance");
  maintenanceUnsubscribe=onSnapshot(statusRef,snapshot=>{
   const state=snapshot.exists()?snapshot.data():{enabled:false};
@@ -742,7 +731,10 @@ function startMaintenanceWatch(){
   else renderMaintenanceGate("open");
  },error=>{
   console.error("Maintenance status listener failed:",error);
-  renderMaintenanceGate("error");
+  /* Rules that require sign-in must not lock people out of the login screen.
+     The watch restarts automatically once the passenger signs in. */
+  if(error?.code==="permission-denied")renderMaintenanceGate("open");
+  else renderMaintenanceGate("error");
  });
 }
 
@@ -751,6 +743,7 @@ function startFirebase(){
   $("authConfigNote").textContent="Firebase setup required: add your Web App config, enable Authentication → Email/Password, and create Firestore. Passengers only enter a username; Dreamcore uses a private internal sign-in identifier behind the scenes.";
   $("authConfigNote").classList.add("config-warning");
   setAuthError("The account system needs your Firebase project configuration before sign-up or login can work.");
+  renderMaintenanceGate("open");
   return;
  }
  try{
@@ -762,6 +755,7 @@ function startFirebase(){
     $("app").classList.add("hidden");$("authScreen").classList.remove("hidden");
     $("accountLabel").textContent="ACCOUNT";return;
    }
+   startMaintenanceWatch(true);
    try{
     await loadProfile(user);
     $("authScreen").classList.add("hidden");$("app").classList.remove("hidden");
@@ -772,7 +766,7 @@ function startFirebase(){
     setAuthError("Signed in, but saved profile could not be loaded: "+error.message);
    }
   });
- }catch(error){console.error(error);setAuthError("Firebase configuration is invalid: "+error.message)}
+ }catch(error){console.error(error);setAuthError("Firebase configuration is invalid: "+error.message);renderMaintenanceGate("open")}
 }
 
 function renderFlights(){
