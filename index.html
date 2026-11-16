@@ -1,839 +1,268 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#050505">
-<title>Dreamcore — Passenger Study</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dreamcore – Study flights</title>
 <style>
-:root{
-  color-scheme:dark;
-  --black:#050505;--surface:#111111;--surface-2:#181818;--surface-3:#222;
-  --line:#303030;--line-soft:#242424;--white:#f4f4f1;--muted:#969696;
-  --yellow:#f2d62e;--yellow-soft:#ffe95b;--green:#91c8a5;--red:#bd7777;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-}
+:root{--bg:#070707;--fg:#f1efe9;--mute:#8c8a84;--line:#2a2a28;--acc:#f5b400;--ok:#4fbf7a;--bad:#e5584a;--card:#0d0d0c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6f4ee;--fg:#1a1a18;--mute:#6b6962;--line:#d6d2c6;--acc:#a86f00;--ok:#1f8a4c;--bad:#c23a2d;--card:#fff}}
+:root[data-theme="dark"]{--bg:#070707;--fg:#f1efe9;--mute:#8c8a84;--line:#2a2a28;--acc:#f5b400;--ok:#4fbf7a;--bad:#e5584a;--card:#0d0d0c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--black);color:var(--white);font:14px/1.5 Inter,Arial,Helvetica,sans-serif;min-height:100vh}
-button,input{font:inherit}button{color:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
-.hidden{display:none!important}.muted{color:var(--muted)}
-.app{max-width:1320px;margin:auto;padding:22px 26px 50px}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:8px 0 20px;border-bottom:1px solid var(--line-soft)}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-mark{width:36px;height:36px;border:1px solid #555;display:grid;place-items:center;color:var(--yellow);font:700 11px var(--mono);letter-spacing:-.08em}
-.brand-name{font-size:14px;font-weight:800;letter-spacing:.2em}.brand-sub{font:8px var(--mono);letter-spacing:.16em;color:#777;margin-top:3px}
-.top-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.meta-chip{font:8px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#aaa;border:1px solid #303030;padding:7px 9px}.meta-chip strong{color:var(--yellow);font-weight:600}
-.kicker{font:8px var(--mono);letter-spacing:.2em;color:#8a8a8a;text-transform:uppercase}
-.page-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:26px 0 18px}
-.page-intro h1{font-size:clamp(27px,4vw,43px);font-weight:550;letter-spacing:-.055em;line-height:1.05;margin:8px 0 7px}
-.page-intro p{color:#8f8f8f;font-size:11px;margin:0}.intro-index{font:8px var(--mono);color:#727272;letter-spacing:.14em;white-space:nowrap;padding-bottom:4px}
-.flight-section{border:1px solid var(--line);background:linear-gradient(180deg,#101010,#0a0a0a);padding:17px 18px 18px;margin-bottom:16px}
-.section-head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:14px}
-.section-title{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}.section-meta{font:8px var(--mono);color:#818181;letter-spacing:.13em}
-.flight-list{display:flex;flex-direction:column;gap:10px;overflow:visible;padding:3px 2px 12px;scroll-snap-type:none;scrollbar-width:auto}
-.flight-card{position:relative;display:block;text-align:left;flex:0 0 auto;width:100%;min-width:0;min-height:150px;padding:14px 15px 13px;background:#171717;border:1px solid #303030;border-radius:20px;scroll-snap-align:start;transition:border-color .2s,background .2s,transform .2s}
-.flight-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:transparent;transition:background .2s}
-.flight-card:hover{border-color:#777;background:#141414;transform:translateY(-2px)}
-.flight-card.selected{border:2px solid #f0f0f0;background:#242424;padding:13px 14px 12px}.flight-card.selected:before{background:transparent}
-.flight-card:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.flight-card-top,.flight-card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.flight-code{font:700 9px var(--mono);letter-spacing:.16em;color:#d8d8d8}
-.flight-state{font:7px var(--mono);letter-spacing:.12em;padding:4px 6px;border:1px solid #494949;color:#bcbcbc;text-transform:uppercase}
-.flight-state.BOARDING{color:var(--green);border-color:#658c7055}.flight-state.UPCOMING{color:var(--yellow);border-color:#a58f2e77}.flight-state.IN_FLIGHT{color:#aaa}
-.flight-route{display:flex;align-items:center;gap:12px;margin:13px 0 11px}.airport-code{font-size:27px;line-height:1;font-weight:750;letter-spacing:-.055em}.route-middle{display:flex;align-items:center;gap:6px;flex:1;color:#777;font:8px var(--mono)}.route-middle:before,.route-middle:after{content:"";height:1px;background:#4a4a4a;flex:1}.route-middle span{font-size:13px;color:#aaa}
-.airport-city{font-size:8px;color:#777;margin-top:4px}.flight-card-foot{font:8px var(--mono);color:#838383;border-top:1px solid #222;padding-top:9px}
-.booking-layout{display:grid;grid-template-columns:minmax(0,1.16fr) minmax(330px,.84fr);gap:16px;align-items:start}
-.cabin-panel,.side-panel{border:1px solid var(--line);background:#0b0b0b;min-width:0}
-.cabin-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 18px;border-bottom:1px solid #282828}
-.cabin-heading h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin:5px 0 0}.cabin-heading small{font:8px var(--mono);color:#777;letter-spacing:.12em}
-.cabin-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 18px;border-bottom:1px solid #222;color:#888;font:7px var(--mono);letter-spacing:.1em;text-transform:uppercase}
-.legend-item{display:flex;align-items:center;gap:5px}.legend-swatch{width:9px;height:9px;border:1px solid #707070;background:#111}.legend-swatch.selected{background:var(--yellow);border-color:var(--yellow)}.legend-swatch.reserved{background:#414141;border-color:#414141}
-.cabin-scroll{padding:14px 14px 22px;overflow:hidden}
-.aircraft-body{position:relative;max-width:620px;margin:0 auto;padding:0 7.5% 24px;isolation:isolate}
-.aircraft-body:before{content:"";position:absolute;inset:0 0 0;background:linear-gradient(180deg,#101213,#080909 28%,#080909);clip-path:polygon(50% 0,61% 2%,72% 7%,84% 14%,94% 22%,100% 32%,100% 95%,96% 100%,4% 100%,0 95%,0 32%,6% 22%,16% 14%,28% 7%,39% 2%);z-index:-2}
-.aircraft-body:after{content:"";position:absolute;inset:0;border:1px solid #545b5c;clip-path:polygon(50% 0,61% 2%,72% 7%,84% 14%,94% 22%,100% 32%,100% 95%,96% 100%,4% 100%,0 95%,0 32%,6% 22%,16% 14%,28% 7%,39% 2%);z-index:-1;opacity:.7;pointer-events:none}
-.aircraft-nose{height:115px;position:relative;display:flex;justify-content:center;align-items:flex-end;padding-bottom:12px;color:#656d6e;font:8px var(--mono);letter-spacing:.23em}
-.cockpit-window{position:absolute;top:25px;width:55%;height:56px;left:22.5%;border-bottom:1px solid #343a3b;border-radius:0 0 50% 50%;background:linear-gradient(180deg,#262c2d33,#08090900);clip-path:polygon(0 0,100% 0,83% 100%,17% 100%)}
-.nose-label{position:relative;z-index:1}
-.exit-row{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;margin:3px 0 13px;border-top:1px solid #282e2f;border-bottom:1px solid #282e2f;color:#828b8d;font:8px var(--mono);letter-spacing:.14em}
-.exit-row span{display:flex;align-items:center;gap:5px}.exit-arrow{font-size:14px;color:#b4b9b6}
-.cabin-zone{padding:14px 5px 18px}.zone-heading{text-align:center;padding:2px 0 14px}.zone-heading b{display:block;font:700 9px var(--mono);letter-spacing:.24em;color:#9ca4a2}.zone-heading small{display:block;margin-top:4px;color:#5e6666;font:8px var(--mono)}
-.column-heads,.seat-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));column-gap:6px;align-items:center}
-.column-heads{margin:0 1px 8px;color:#747d7e;text-align:center;font:700 8px var(--mono);letter-spacing:.12em}.column-heads span:nth-child(3){visibility:hidden}
-.seat-row{margin:0 0 9px}.row-no{text-align:center;color:#747d7e;font:700 9px var(--mono)}
-.seat-cell{display:flex;justify-content:center;min-width:0}.seat-cell.aisle{pointer-events:none}
-.seat-button{width:100%;max-width:76px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px 5px;background:transparent;border:1px solid transparent;transition:background .17s,border-color .17s,transform .17s;min-width:0}
-.seat-button:hover:not(:disabled){background:#1c2020;border-color:#485050;transform:translateY(-2px)}
-.seat-button.selected{background:#2a2815;border-color:var(--yellow);box-shadow:0 0 0 1px #f2d62e22}
-.seat-button.reserved{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
-.seat-icon{width:43px;height:46px;display:block;overflow:visible}.seat-id{font:7px var(--mono);letter-spacing:.1em;color:#aaa}.seat-button.selected .seat-id{color:var(--yellow)}
-.seat-button.reserved .seat-id{color:#777}
-.business-zone{padding-top:8px;padding-bottom:20px;border-bottom:1px dashed #3a3d3d}
-.economy-zone{padding-top:17px;padding-bottom:4px}
-.cabin-tail{height:38px;display:flex;align-items:flex-end;justify-content:center;color:#565e5e;font:7px var(--mono);letter-spacing:.24em}
-.side-stack{display:grid;gap:14px;align-content:start}
-.side-panel{padding:17px 18px}
-.side-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid #262626;margin-bottom:13px}
-.side-head h2{margin:4px 0 0;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
-.step-tag{font:8px var(--mono);letter-spacing:.1em;color:#aaa;border:1px solid #383838;padding:5px 7px}
-.field{display:grid;gap:6px;margin:11px 0}.field label{font:8px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#929292}.field input{width:100%;background:#080808;border:1px solid #3a3a3a;padding:11px 12px;color:#f4f4f4;border-radius:0;outline:none;font-size:12px}.field input:focus{border-color:#e5d34c;box-shadow:0 0 0 2px #f2d62e12}
-.primary-btn,.secondary-btn{width:100%;min-height:43px;border:1px solid var(--yellow);background:var(--yellow);color:#101010;font:800 9px var(--mono);letter-spacing:.15em;text-transform:uppercase;transition:background .18s,color .18s,transform .18s}
-.primary-btn:hover:not(:disabled){background:var(--yellow-soft);transform:translateY(-1px)}.primary-btn:disabled{opacity:.3;cursor:not-allowed}
-.secondary-btn{background:transparent;color:#ddd;border-color:#444}.secondary-btn:hover{border-color:#aaa;background:#181818}
-.pass-card{position:relative;margin-top:12px;background:#171717;border:1px solid #303030;overflow:hidden;transform-origin:top center}
-.pass-card.ticket-in{animation:ticketIn .72s cubic-bezier(.2,.8,.2,1) both}@keyframes ticketIn{from{opacity:0;transform:translateY(22px) scale(.97);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
-.ticket-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:15px 14px 12px}.ticket-label{font-size:9px;font-weight:800;letter-spacing:.12em}.ticket-status{border:1px solid #1e6650;border-radius:999px;padding:5px 8px;background:#042c22;color:#2ad29a;font:8px var(--mono)}
-.ticket-flight{padding:0 14px 15px;color:#aaa;font-size:11px;font-weight:650}.ticket-route{display:grid;grid-template-columns:1fr minmax(64px,.7fr) 1fr;align-items:center;gap:7px;padding:4px 14px 18px}.ticket-airport strong{font-size:31px;line-height:1;font-weight:750;letter-spacing:-.05em;display:block}.ticket-airport small{display:block;margin-top:6px;color:#aaa;font-size:9px}.ticket-airport.right{text-align:right}.ticket-line{text-align:center;color:#858585;font:8px var(--mono)}.ticket-line .plane-line{display:flex;align-items:center;gap:4px}.ticket-line .plane-line:before,.ticket-line .plane-line:after{content:"";height:1px;flex:1;background:#595959}.ticket-line .plane-line b{font-size:13px;color:#eee;font-weight:400}
-.ticket-sep{height:1px;background:#414141;margin:0 14px 13px}.ticket-details{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:0 14px 16px}.ticket-detail small{display:block;font-size:8px;color:#888}.ticket-detail b{display:block;margin-top:5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ticket-tear{height:14px;border-top:1px dashed #555;position:relative;margin:0 10px}.ticket-tear:before,.ticket-tear:after{content:"";position:absolute;top:-8px;width:15px;height:15px;border-radius:50%;background:#0b0b0b;border:1px solid #333}.ticket-tear:before{left:-18px}.ticket-tear:after{right:-18px}
-.ticket-barcode{height:48px;margin:0 14px 14px;display:flex;align-items:stretch;gap:2px;overflow:hidden}.ticket-barcode i{display:block;flex:none;background:#e5e5e5;height:100%}.ticket-code{padding:0 14px 13px;color:#777;font:7px var(--mono);letter-spacing:.12em;display:flex;justify-content:space-between}
-.tasks-panel{padding:17px 18px}.task-add{display:grid;grid-template-columns:minmax(0,1fr) 68px;gap:7px}.task-add input{min-width:0;width:100%;border:1px solid #3a3a3a;background:#080808;padding:11px;color:#eee;font-size:11px;outline:none}.task-add input:focus{border-color:#ded04c}.task-add button{border:1px solid var(--yellow);background:var(--yellow);color:#111;font:800 8px var(--mono);letter-spacing:.1em}
-.task-list{margin-top:10px}.task-row{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid #252525}.task-row:last-child{border-bottom:0}.task-row input{accent-color:var(--yellow);width:15px;height:15px;flex:none}.task-row span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:11px;color:#ddd}.task-row.done span{text-decoration:line-through;color:#777}.task-empty{font-size:10px;color:#777;padding:12px 0}
-/* Passenger flight HUD — deliberately free of aircraft telemetry. */
-#flightMode{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:#000;color:#f5f5f5;padding:22px;transition:filter .7s}#flightMode.active{display:flex}#flightMode.dimmed{filter:brightness(.2)}
-.hud-wrap{width:min(980px,100%);margin:auto}.hud-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:28px}.hud-brand{font:800 9px var(--mono);letter-spacing:.2em;color:#8b8b8b}.hud-exit{background:transparent;border:1px solid #343434;color:#aaa;padding:8px 12px;font:8px var(--mono);letter-spacing:.12em}
-.hud-main{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hud-card{background:#1a1a1a;border:1px solid #242424;min-height:235px;padding:clamp(22px,4vw,42px);display:flex;flex-direction:column;justify-content:center}.hud-caption{font-size:clamp(13px,2vw,18px);color:#929292;font-weight:400;letter-spacing:.01em}.hud-value{font-size:clamp(52px,9vw,92px);font-weight:350;letter-spacing:-.065em;line-height:1.1;margin-top:19px;font-variant-numeric:tabular-nums}.hud-value small{font-size:.36em;color:#999;font-weight:500;letter-spacing:-.02em}.flip-clock{display:flex;align-items:center;gap:7px;margin-top:16px}.flip-digit{position:relative;display:grid;place-items:center;width:clamp(39px,6.2vw,65px);height:clamp(57px,8.2vw,82px);background:linear-gradient(#242424 0 49.5%,#101010 50%);border:1px solid #3a3a3a;border-radius:3px;font:500 clamp(29px,5vw,54px)/1 var(--mono);letter-spacing:-.08em;font-variant-numeric:tabular-nums;overflow:hidden}.flip-digit:after{content:"";position:absolute;top:50%;left:0;right:0;border-top:1px solid #000}.flip-sep{font:26px var(--mono);color:#777;transform:translateY(-3px)}
-.hud-secondary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.hud-secondary-item{border-top:1px solid #2b2b2b;padding:13px 2px 0;display:flex;justify-content:space-between;gap:10px;color:#777;font:8px var(--mono);letter-spacing:.1em;text-transform:uppercase}.hud-secondary-item strong{color:#d2d2d2;font-size:9px;font-weight:500}
-.hud-task-area{margin-top:25px;text-align:center}.hud-task-toggle{background:transparent;border:0;border-bottom:1px solid #444;padding:8px 5px;color:#aaa;font:8px var(--mono);letter-spacing:.15em}.hud-tasks{max-width:500px;margin:12px auto 0;text-align:left;background:#101010;border:1px solid #292929;padding:8px 15px}.hud-tasks .task-row{border-color:#292929}
-.modal-backdrop{position:fixed;inset:0;z-index:90;background:#000d;display:grid;place-items:center;padding:20px}.modal{width:min(390px,100%);background:#111;border:1px solid #383838;padding:25px}.modal h2{font-size:22px;letter-spacing:-.04em;margin:8px 0}.modal p{font-size:11px;color:#999;line-height:1.7}.modal-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.modal-stat{background:#080808;border:1px solid #2b2b2b;padding:12px}.modal-stat small{display:block;color:#777;font:7px var(--mono);letter-spacing:.12em}.modal-stat strong{display:block;margin-top:6px;font-size:18px}
-@media(max-width:950px){.booking-layout{grid-template-columns:1fr}.side-stack{grid-template-columns:1fr 1fr;align-items:start}}
-@media(max-width:650px){.app{padding:13px 12px 35px}.topbar{padding-bottom:14px}.brand-mark{width:31px;height:31px}.brand-name{font-size:11px}.brand-sub{font-size:6px}.meta-chip{font-size:7px;padding:6px}.page-intro{padding:20px 0 14px}.page-intro h1{font-size:29px}.intro-index{font-size:7px}.flight-section{padding:13px;margin-bottom:12px}.flight-list{grid-template-columns:1fr;gap:7px}.flight-card{padding:12px}.flight-route{margin:9px 0}.airport-code{font-size:24px}.booking-layout{gap:12px}.side-stack{grid-template-columns:1fr;gap:12px}.cabin-heading{padding:14px}.cabin-scroll{padding:10px 4px 16px}.aircraft-body{padding-left:5%;padding-right:5%}.aircraft-nose{height:87px}.column-heads,.seat-row{column-gap:2px}.seat-button{max-width:65px;padding:3px 0}.seat-icon{width:37px;height:40px}.seat-id{font-size:6px}.cabin-legend{gap:9px;padding:9px 13px}.hud-main{grid-template-columns:1fr;gap:8px}.hud-card{min-height:170px;padding:20px 21px}.hud-value{font-size:60px;margin-top:10px}.flip-clock{margin-top:10px}.hud-secondary{gap:10px}.hud-top{margin-bottom:17px}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+.wrap{max-width:840px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:14px;align-items:center}
+.logo{width:34px;height:34px;border:1px solid var(--acc);color:var(--acc);display:grid;place-items:center;font-size:10px;font-weight:700}
+.brand b{letter-spacing:.14em}.brand small{display:block;color:var(--mute);font-size:12px}
+.who{font-size:12px;color:var(--mute)}.who a{color:var(--acc);margin-left:10px;font-size:14px;text-decoration:none}
+h1{font-size:28px;margin:32px 0 4px}h2{font-size:20px;margin:0 0 4px}h3{font-size:16px;margin:0 0 10px}
+p.sub{color:var(--mute);margin:0 0 20px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.tab{background:none;border:1px solid var(--line);color:var(--fg);text-align:left;padding:18px 20px;cursor:pointer;font:inherit}
+.tab span{display:block;color:var(--mute);font-size:13px;margin-top:4px}
+.tab[aria-selected="true"]{border-color:var(--acc)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.panel{border:1px solid var(--line);padding:22px;background:var(--card);margin-bottom:24px}
+.panel[hidden]{display:none}
+.banner{border:1px solid var(--bad);color:var(--bad);padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.banner[hidden]{display:none}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+label{display:block;font-size:12px;color:var(--mute)}
+input,select{width:100%;background:transparent;color:var(--fg);border:0;border-bottom:1px solid var(--mute);padding:8px 2px;font:inherit;border-radius:0;color-scheme:dark light}
+select option{background:var(--card);color:var(--fg)}
+.seg{display:flex}.seg label{flex:1;margin:0}
+.seg input{position:absolute;opacity:0;width:0}
+.seg span{display:block;text-align:center;padding:9px;border:1px solid var(--line);cursor:pointer;color:var(--fg);font-size:14px}
+.seg input:checked+span{border-color:var(--acc);color:var(--acc)}
+.seg input:focus-visible+span{outline:2px solid var(--acc)}
+.btn{background:none;border:1px solid var(--acc);color:var(--acc);padding:11px 20px;font:inherit;cursor:pointer}
+.btn:hover{background:var(--acc);color:#111}
+.btn.danger{border-color:var(--bad);color:var(--bad)}.btn.danger:hover{background:var(--bad);color:#fff}
+.btn.sm{padding:4px 10px;font-size:13px}
+.msg{margin:12px 0 0;font-size:14px;min-height:20px}.msg.err{color:var(--bad)}.msg.ok{color:var(--ok)}
+.full{grid-column:1/-1}
+.scroll{overflow-x:auto;margin-top:18px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th{font-weight:500;color:var(--mute);text-align:left;font-size:12px;padding:8px 6px;border-bottom:1px solid var(--line)}
+td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.pill{font-size:12px;padding:2px 8px;border:1px solid currentColor}
+.s-Scheduled,.s-Daily{color:var(--acc)}.s-Paused{color:var(--mute)}.s-Cleared{color:var(--ok)}.s-Held,.s-Cancelled{color:var(--bad)}
+.rw{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.rw div{border:1px solid var(--line);padding:14px}.rw b{font-size:18px}.rw small{display:block;color:var(--mute)}
+.rw .closed{border-color:var(--bad)}
+.rw .closed small{color:var(--bad)}
+.empty{color:var(--mute);margin:14px 0 0}
+ul.log{list-style:none;margin:0;padding:0}ul.log li{padding:10px 0;border-bottom:1px solid var(--line)}ul.log time{color:var(--mute);font-size:12px;display:block}
+hr{border:0;border-top:1px solid var(--line);margin:40px 0 28px}
+.modes{display:flex;gap:8px}.mode{background:none;border:1px solid var(--line);color:var(--fg);padding:8px 14px;font:inherit;cursor:pointer}.mode[aria-selected="true"]{border-color:var(--acc);color:var(--acc)}.mode:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.fl{display:grid;grid-template-columns:1.4fr 1fr auto;gap:16px;align-items:center;border:1px solid var(--line);background:var(--card);padding:16px 18px;margin-bottom:12px}.fl small{color:var(--mute)}
+.bar{height:4px;background:var(--line);margin:16px 0 20px}.bar i{display:block;height:100%;background:var(--acc);width:0}
+@media(max-width:640px){.fl{grid-template-columns:1fr}}
+.row{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
+@media(max-width:640px){.tabs,.rw{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
 </style>
-<style id="reference-fidelity-overrides">
-:root{--yellow:#ffdf22;--yellow-soft:#ffea53}
-body{background:#050505}
-.app{max-width:760px;padding:18px 15px 48px}
-.topbar{border:0;padding:7px 0 17px}
-.brand-mark{width:34px;height:34px;border:0;background:transparent;color:#f4f4f4;font:800 15px Arial;letter-spacing:-.12em}
-.brand-name{font-size:12px;letter-spacing:.22em}
-.brand-sub{font-size:7px}
-.page-intro{padding:14px 0 16px}
-.page-intro h1{font-size:32px;font-weight:600;letter-spacing:-.06em}
-.page-intro p{font-size:10px}
-.flight-section{border:0;background:transparent;padding:0;margin:0 0 16px}
-.section-head{padding:0 2px;margin-bottom:10px}
-.section-title{font-size:10px;letter-spacing:.16em}
-.flight-card{width:100%;border-radius:19px;box-shadow:none}
-.flight-card-top{margin-bottom:4px}
-.flight-code{font-size:10px}
-.flight-state{border-radius:99px}
-.flight-route{align-items:center}
-.airport-code{display:inline-flex;align-items:center;justify-content:center;min-width:78px;min-height:48px;padding:0 13px;border-radius:15px;background:var(--yellow);color:#171717;font-size:19px;font-weight:850;letter-spacing:-.03em}
-.airport-city{color:#dedede;font-size:10px}
-.route-middle{min-width:30px}
-.route-middle:before,.route-middle:after{background:#777}
-.flight-card-foot{font-size:7px}
-.booking-layout{display:grid;grid-template-columns:1fr;gap:14px}
-.cabin-panel{border:0;background:transparent}
-.cabin-heading{padding:13px 3px;border:0}
-.cabin-heading h2{font-size:11px}
-.cabin-legend{padding:8px 3px 12px;border:0}
-.cabin-scroll{padding:0;overflow:visible}
-.aircraft-body{width:min(100%,520px);padding:0 6% 28px;overflow:hidden}
-.aircraft-body:before{background:linear-gradient(180deg,#161719,#090a0b 22%,#08090a);clip-path:polygon(50% 0,63% 2%,77% 8%,90% 17%,98% 28%,100% 38%,100% 96%,96% 100%,4% 100%,0 96%,0 38%,2% 28%,10% 17%,23% 8%,37% 2%)}
-.aircraft-body:after{clip-path:polygon(50% 0,63% 2%,77% 8%,90% 17%,98% 28%,100% 38%,100% 96%,96% 100%,4% 100%,0 96%,0 38%,2% 28%,10% 17%,23% 8%,37% 2%);border:2px solid #4d5154}
-.aircraft-nose{height:160px;padding-bottom:12px}
-.cockpit-window{top:42px;width:66%;left:17%;height:75px;border-bottom:0;border-radius:0;background:linear-gradient(90deg,transparent 0 5%,#777b7d 5% 47%,transparent 47% 53%,#777b7d 53% 95%,transparent 95%);clip-path:polygon(0 0,100% 0,83% 100%,17% 100%);opacity:.42}
-.nose-label{font-size:8px;color:#73787b}
-.exit-row{padding:8px 2px;margin:0 0 12px;border-top:1px solid #292d30;border-bottom:1px solid #292d30}
-.cabin-zone{padding:16px 3px 19px}
-.zone-heading{padding-bottom:18px}
-.zone-heading b{font-size:10px;color:#a4a9ad}
-.zone-heading small{font-size:8px}
-.column-heads,.seat-row{grid-template-columns:repeat(3,minmax(0,1fr)) 25px repeat(3,minmax(0,1fr));column-gap:2px}
-.column-heads{font-size:9px;margin-bottom:12px}
-.column-heads .blank{visibility:hidden}
-.seat-row{margin-bottom:13px}
-.row-no{font-size:10px}
-.seat-button{max-width:68px;gap:2px;padding:4px 1px 5px;border-radius:13px}
-.seat-icon{width:clamp(35px,8vw,49px);height:clamp(40px,9vw,55px)}
-.seat-id{font-size:7px}
-.seat-button.selected{background:#2c2916;border:1px solid var(--yellow)}
-.seat-button.reserved{opacity:.28}
-.business-zone{padding-top:14px;padding-bottom:25px}
-.economy-zone{padding-top:22px}
-.cabin-tail{height:35px}
-.side-stack{display:grid;grid-template-columns:1fr;gap:14px}
-.side-panel{padding:17px;border:1px solid #292929;border-radius:18px;background:#111}
-.side-head{margin-bottom:14px}
-.primary-btn{border-radius:99px;min-height:49px;font-size:10px}
-.secondary-btn{border-radius:99px}
-.field input,.task-add input{border-radius:11px}
-.pass-card{margin-top:15px;border:0;border-radius:27px;background:#191919;padding-bottom:3px}
-.ticket-top{padding:22px 20px 13px}
-.ticket-label{font-size:11px}
-.ticket-status{font-size:9px;padding:7px 12px}
-.ticket-flight{font-size:14px;padding:0 20px 19px}
-.ticket-route{grid-template-columns:1fr minmax(72px,.8fr) 1fr;padding:12px 20px 24px}
-.ticket-airport strong{font-size:clamp(36px,9vw,49px)}
-.ticket-airport small{font-size:11px;font-weight:600}
-.ticket-line{font-size:10px}
-.ticket-line .plane-line b{font-size:19px}
-.ticket-sep{margin:0 20px 17px}
-.ticket-details{gap:18px;padding:0 20px 30px}
-.ticket-detail small{font-size:10px;color:#9b9b9b}
-.ticket-detail b{font-size:14px;margin-top:7px}
-.ticket-tear{margin:0 15px}
-.ticket-tear:before,.ticket-tear:after{width:22px;height:22px;top:-12px;border-radius:50%;background:#080808}
-.ticket-barcode{height:65px;margin:0 20px 15px;gap:1px}
-.ticket-code{font-size:8px;padding:0 20px 15px}
-.tasks-panel{border-radius:18px}
-.task-add{grid-template-columns:minmax(0,1fr) 75px}
-.task-add input{border-radius:10px}
-.task-add button{border-radius:10px}
-#flightMode{background:#080808}
-.hud-wrap{width:min(900px,100%)}
-.hud-top{margin-bottom:22px}
-.hud-main{grid-template-columns:1fr 1fr;gap:12px}
-.hud-card{background:#1d1d1f;border:0;border-radius:24px;min-height:230px;padding:clamp(18px,4vw,34px)}
-.hud-caption{font-size:clamp(12px,2.2vw,17px);color:#a2a2a7}
-.hud-value{font-size:clamp(44px,8vw,78px);margin-top:22px}
-.flip-clock{gap:4px}
-.flip-digit{width:clamp(32px,5vw,56px);height:clamp(52px,8vw,75px);border-radius:7px;background:linear-gradient(#303034 0 49.5%,#141416 50%);border:1px solid #39393d;font-size:clamp(24px,4.5vw,43px)}
-.hud-secondary{margin-top:14px}
-.hud-secondary-item{font-size:9px}
-.hud-secondary-item strong{font-size:11px}
-.hud-task-toggle{border:1px solid #444;border-radius:99px;padding:10px 16px}
-@media(min-width:760px){
- .app{padding-top:24px}
- .flight-list{width:100%}
- .booking-layout{grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);align-items:start}
- .aircraft-body{max-width:460px}
-}
-@media(max-width:520px){
- .app{padding:12px 12px 35px}
- .topbar{padding-bottom:12px}
- .meta-chip{font-size:7px;padding:5px 7px}
- .page-intro h1{font-size:28px}
- .flight-card{flex-basis:auto;width:100%;min-height:142px;padding:12px}
- .airport-code{min-width:65px;min-height:43px;font-size:17px}
- .aircraft-body{padding-left:3.5%;padding-right:3.5%}
- .aircraft-nose{height:135px}
- .seat-button{max-width:57px}
- .seat-icon{width:35px;height:41px}
- .seat-row{margin-bottom:10px}
- .hud-main{grid-template-columns:1fr 1fr;gap:7px}
- .hud-card{min-height:185px;padding:16px 11px;border-radius:19px}
- .hud-caption{font-size:12px}
- .hud-value{font-size:clamp(38px,10vw,55px);margin-top:17px}
- .flip-clock{gap:2px}
- .flip-digit{width:clamp(27px,8vw,38px);height:48px;font-size:clamp(20px,6vw,29px)}
- .flip-sep{font-size:17px}
- .hud-secondary-item{display:block}
- .hud-secondary-item strong{display:block;margin-top:7px}
-}
-</style>
-
-<style id="progressive-flow-styles">
-.step-hidden{display:none!important}
-.step-reveal{animation:stepReveal .58s cubic-bezier(.2,.75,.25,1) both}
-@keyframes stepReveal{from{opacity:0;transform:translateY(18px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
-.flight-section.is-collapsed .flight-list{display:none}
-.selected-flight-summary{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px 14px;padding:15px 16px;background:#171717;border:1px solid #e8e8e8;border-radius:17px}
-.summary-route{display:flex;align-items:center;gap:11px;font-size:18px;letter-spacing:.03em}
-.summary-route strong{font-weight:850}
-.summary-route span{color:#777}
-.summary-meta{display:flex;flex-wrap:wrap;gap:7px 14px;color:#929292;font:8px var(--mono);letter-spacing:.08em}
-.text-action{grid-column:2;grid-row:1/3;background:transparent;border:1px solid #454545;border-radius:99px;color:#dedede;padding:9px 12px;font:8px var(--mono);letter-spacing:.1em;white-space:nowrap}
-.text-action:active{background:#333}
-.journey-progress{margin:19px 0 3px;padding:18px 20px 14px;background:#151517;border:1px solid #262629;border-radius:19px}
-.journey-progress-head,.journey-progress-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.journey-progress-head{font:9px var(--mono);letter-spacing:.15em;color:#a2a2a5}
-.journey-progress-head strong{font:700 13px var(--mono);color:#f4f4f4}
-.journey-track{position:relative;height:7px;margin:20px 8px 13px;background:#353539;border-radius:99px}
-.journey-track i{display:block;width:0;height:100%;border-radius:99px;background:linear-gradient(90deg,#e3c91d,#ffe94c);transition:width .65s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 13px #ffe22b55}
-.journey-track b{position:absolute;left:0;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#ffdf22;color:#171717;font-size:12px;box-shadow:0 0 0 5px #ffdf2220;transition:left .65s cubic-bezier(.2,.7,.2,1)}
-.journey-progress-foot{font:7px var(--mono);letter-spacing:.12em;color:#777}
-@media(max-width:520px){.selected-flight-summary{padding:13px 12px}.summary-route{font-size:17px}.summary-meta{font-size:7px}.text-action{font-size:7px;padding:8px}.journey-progress{padding:15px 14px 12px}}
-</style>
-
-<style id="account-system-styles">
-.auth-screen{position:fixed;inset:0;z-index:100;background:#050505;display:grid;place-items:center;padding:22px;overflow:auto}
-.auth-shell{width:min(440px,100%);margin:auto}
-.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
-.auth-mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid #666;color:var(--yellow);font:800 12px var(--mono);letter-spacing:-.1em}
-.auth-brand b{display:block;font-size:12px;letter-spacing:.2em}.auth-brand small{display:block;color:#777;font:7px var(--mono);letter-spacing:.16em;margin-top:4px}
-.auth-card{background:#101010;border:1px solid #303030;padding:25px 23px}
-.auth-card h1{font-size:29px;font-weight:550;letter-spacing:-.06em;margin:10px 0 7px}
-.auth-copy{font-size:11px;color:#929292;line-height:1.7;margin:0 0 22px}
-.auth-label{display:block;font:8px var(--mono);letter-spacing:.14em;color:#a0a0a0;margin:14px 0 7px}
-.auth-input{width:100%;height:44px;background:#070707;border:1px solid #383838;border-radius:0;padding:0 12px;color:#f4f4f4;font-size:12px;outline:none}
-.auth-input:focus{border-color:var(--yellow);box-shadow:0 0 0 2px #f2d62e12}
-.auth-submit{width:100%;height:47px;margin-top:20px;border:1px solid var(--yellow);background:var(--yellow);color:#101010;font:800 9px var(--mono);letter-spacing:.16em}
-.auth-submit:disabled{opacity:.5;cursor:wait}
-.auth-links{display:flex;justify-content:space-between;gap:12px;margin-top:17px}
-.auth-links button{background:none;border:0;padding:0;color:#d7d7d7;text-decoration:underline;text-underline-offset:3px;font-size:10px}
-.auth-foot,.auth-config-note{font-size:9px;line-height:1.7;color:#777;margin:19px 0 0}
-.auth-error{margin-top:13px;padding:10px;border:1px solid #754747;background:#211313;color:#e5a0a0;font-size:10px;line-height:1.5}
-.account-chip{background:transparent;cursor:pointer}
-@media(max-width:520px){.auth-card{padding:22px 18px}.auth-card h1{font-size:26px}.account-chip{font-size:7px;padding:6px}}
-</style>
-
-<style>.config-warning{color:#c6a85c!important}.auth-error[style*="green"]{border-color:#446c51;background:#101b13;color:#a9d7b5}</style>
-
-<style>.auth-help{font:8px var(--mono);letter-spacing:.12em;color:#777;align-self:center}</style>
-
-<style id="dreamcore-plane-doodle">
-.brand-mark,.auth-mark{
-  display:grid;place-items:center;border:0;background:transparent;
-  color:var(--yellow);font-size:0;letter-spacing:0;
-}
-.brand-mark{width:36px;height:36px}
-.auth-mark{width:42px;height:42px}
-.plane-doodle{display:block;width:100%;height:100%;overflow:visible}
-.plane-doodle path{
-  fill:none;stroke:currentColor;stroke-width:1.45;
-  stroke-linecap:round;stroke-linejoin:round;
-}
-.brand-mark .plane-doodle{width:34px;height:29px}
-.auth-mark .plane-doodle{width:38px;height:32px}
-@media(max-width:650px){.brand-mark{width:31px;height:31px}}
-</style>
-
-<style id="dreamcore-editorial-refinement">
-/* Quiet editorial treatment: typography, spacing and hairline dividers instead of UI tiles. */
-:root{--yellow:#f0d84a;--yellow-soft:#f7e98b}
-button{font-family:inherit}
-.topbar{border-bottom:1px solid #252525}
-.brand-mark,.auth-mark{color:var(--yellow)}
-.page-intro{padding-top:22px;padding-bottom:24px}
-.page-intro h1{font-weight:500;letter-spacing:-.075em}
-.page-intro p{max-width:34em;line-height:1.8;color:#999}
-.section-head{border-bottom:1px solid #303030;padding:0 0 11px}
-.section-title{font-size:9px;letter-spacing:.2em;color:#aaa}
-.flight-list{gap:0!important}
-.flight-card{
-  border:0!important;border-bottom:1px solid #292929!important;
-  border-radius:0!important;background:transparent!important;
-  padding:17px 3px!important;min-height:0!important;
-  box-shadow:none!important;transition:background .2s ease;
-}
-.flight-card:hover{background:#101010!important}
-.flight-card-top{display:flex;align-items:center}
-.flight-state{border:0!important;border-radius:0!important;background:transparent!important;padding:0!important}
-.airport-code{
-  min-width:0!important;min-height:0!important;padding:0!important;
-  background:transparent!important;color:var(--yellow)!important;
-  border-radius:0!important;font-size:27px!important;font-weight:650!important;
-  letter-spacing:-.06em!important;
-}
-.airport-city{font-size:9px;color:#999}
-.route-middle:before,.route-middle:after{background:#555}
-.flight-card-foot{color:#888}
-.primary-btn,.secondary-btn,.auth-submit{
-  width:auto;min-height:0;height:auto;padding:13px 0;
-  border:0!important;border-radius:0!important;
-  border-top:1px solid var(--yellow)!important;
-  background:transparent!important;color:var(--yellow)!important;
-  text-align:left;font:600 9px var(--mono);letter-spacing:.16em;
-  box-shadow:none!important;transform:none!important;
-}
-.primary-btn:hover:not(:disabled),.secondary-btn:hover,.auth-submit:hover{
-  background:transparent!important;color:#fff!important;
-}
-.secondary-btn{border-color:#454545!important;color:#bbb!important}
-.side-panel,.auth-card,.tasks-panel,.modal{
-  border:0!important;border-top:1px solid #343434!important;
-  border-radius:0!important;background:transparent!important;
-  box-shadow:none!important;padding-left:0;padding-right:0;
-}
-.auth-shell{max-width:420px}
-.auth-brand{margin-bottom:36px}
-.auth-card{padding-top:22px;padding-bottom:20px}
-.auth-card h1{font-weight:500;letter-spacing:-.07em}
-.auth-copy{max-width:32em}
-.auth-submit{width:100%;margin-top:22px}
-.auth-input,.field input,.task-add input{
-  border:0!important;border-bottom:1px solid #555!important;
-  border-radius:0!important;background:transparent!important;
-  padding-left:0!important;padding-right:0!important;
-  box-shadow:none!important;
-}
-.auth-input:focus,.field input:focus,.task-add input:focus{border-bottom-color:var(--yellow)!important}
-.auth-links button{color:#aaa;text-decoration:none;border-bottom:1px solid #555;padding-bottom:3px}
-.flight-section,.cabin-panel{box-shadow:none}
-.cabin-panel{border-top:1px solid #303030}
-.cabin-heading{border-bottom:1px solid #252525}
-.seat-button{border-radius:3px!important;box-shadow:none!important}
-.seat-button.selected{background:#282514!important}
-.side-stack{gap:24px}
-.pass-card{border:0!important;border-top:1px solid #555!important;border-bottom:1px solid #555!important;border-radius:0!important;background:#101010!important;box-shadow:none!important}
-.ticket-status{border-radius:0!important}
-.ticket-tear:before,.ticket-tear:after{border-radius:50%}
-.tasks-panel{padding-top:15px;padding-bottom:15px}
-.task-add{grid-template-columns:minmax(0,1fr) auto;gap:15px}
-.task-add button{
-  border:0!important;border-bottom:1px solid var(--yellow)!important;
-  border-radius:0!important;background:transparent!important;
-  color:var(--yellow)!important;padding:0 0 4px;font:600 8px var(--mono);
-}
-#flightMode{background:#050505}
-.hud-main{gap:28px}
-.hud-card{
-  border:0!important;border-radius:0!important;
-  border-top:1px solid #414141!important;
-  background:transparent!important;box-shadow:none!important;
-  min-height:190px;padding:22px 4px;
-}
-.hud-value{font-weight:300;letter-spacing:-.08em}
-.flip-digit{border-radius:0!important;box-shadow:none!important}
-.hud-task-toggle{border:0!important;border-bottom:1px solid #555!important;border-radius:0!important}
-.hud-tasks{border:0!important;border-top:1px solid #333!important;border-radius:0!important;background:transparent!important}
-.hud-exit{border:0!important;border-bottom:1px solid #555!important;border-radius:0!important}
-.selected-flight-summary,.journey-progress{
-  border:0!important;border-top:1px solid #383838!important;
-  border-radius:0!important;background:transparent!important;
-  box-shadow:none!important;padding-left:2px;padding-right:2px;
-}
-.text-action{border:0!important;border-bottom:1px solid #555!important;border-radius:0!important}
-.journey-track{border-radius:0!important;height:2px}
-.journey-track i{border-radius:0!important;box-shadow:none!important}
-.journey-track b{border-radius:0!important;width:9px;height:9px;box-shadow:none!important}
-.modal-stat{border:0!important;border-top:1px solid #333!important;border-radius:0!important;background:transparent!important}
-@media(max-width:520px){
- .page-intro h1{font-size:30px}
- .flight-card{padding:15px 2px!important}
- .hud-main{gap:14px}
- .hud-card{min-height:155px;padding:17px 2px}
-}
-</style>
-
-<style id="dreamcore-maintenance-gate">
-.maintenance-screen{
-  position:fixed;inset:0;z-index:10000;display:grid;place-items:center;
-  padding:28px;background:#050505;color:#f4f4f1;
-}
-.maintenance-inner{width:min(460px,100%);text-align:left}
-.maintenance-mark{
-  width:34px;height:34px;display:grid;place-items:center;
-  border:1px solid #6c6330;color:#f0d84a;
-  font:700 10px ui-monospace,monospace;letter-spacing:.12em;margin-bottom:38px;
-}
-.maintenance-kicker{font:8px ui-monospace,monospace;letter-spacing:.2em;color:#aaa}
-.maintenance-inner h1{
-  margin:16px 0 12px;font-size:clamp(30px,7vw,48px);
-  line-height:1.02;font-weight:500;letter-spacing:-.065em;
-}
-.maintenance-inner p{margin:0;max-width:34em;color:#aaa;font-size:13px;line-height:1.8}
-.maintenance-foot{
-  margin-top:32px;padding-top:12px;border-top:1px solid #333;
-  color:#e4d15a;font:8px ui-monospace,monospace;letter-spacing:.18em;
-}
-</style>
-
 </head>
 <body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="logo">ATC</div><div><b>DREAMCORE</b><small>Study flights</small></div></div>
+  <nav class="modes"><button class="mode" data-m="pax" aria-selected="true">Passenger</button><button class="mode" data-m="atc" aria-selected="false">ATC control</button></nav>
+</header>
 
-<div id="maintenanceScreen" class="maintenance-screen" role="status" aria-live="polite">
-  <div class="maintenance-inner">
-    <div class="maintenance-mark" aria-hidden="true">DC</div>
-    <div class="maintenance-kicker">DREAMCORE / SERVICE STATUS</div>
-    <h1 id="maintenanceTitle">Checking service status</h1>
-    <p id="maintenanceMessage">Connecting to the operations desk. Please wait.</p>
-    <div class="maintenance-foot" id="maintenanceFoot">VERIFYING CONNECTION</div>
-  </div>
+<section id="v-pax">
+<h1>Your next study session is ready for departure.</h1>
+<p class="sub">Choose a route, take your seat, and make the time count.</p>
+<div id="paxHalt" class="banner" hidden></div>
+<div id="paxFlight" class="panel" hidden></div>
+<p class="msg" id="paxMsg" role="status"></p>
+<h2>Choose your flight</h2>
+<p class="sub" id="paxStats"></p>
+<div id="board"></div>
+</section>
+<div id="v-atc" hidden>
+<h1>Operations console</h1>
+<p class="sub">Pick a tool to open it.</p>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" data-t="flights" aria-selected="true">Flights<span>Departures, arrivals and status</span></button>
+  <button class="tab" role="tab" data-t="runways" aria-selected="false">Runways<span>Assign and clear runways</span></button>
+  <button class="tab" role="tab" data-t="alerts" aria-selected="false">Alerts<span>Delays and weather notices</span></button>
 </div>
 
-<div class="auth-screen" id="authScreen">
-  <div class="auth-shell">
-    <div class="auth-brand"><span class="auth-mark"><svg class="plane-doodle" viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M2 34 Q12 40 23 29 Q26 26 23 23 L12 15 Q10 13 13 13 L24 19 Q27 20 29 17 L39 4 Q42 1 43 3 Q45 5 42 8 L34 20 Q32 23 35 25 L44 33 Q46 35 44 36 Q42 38 39 35 L29 27 Q27 25 25 28 Q13 40 2 34Z"/></svg></span><div><b>Dreamcore</b><small>YOUR STUDY. YOUR FLIGHTPATH.</small></div></div>
-    <div class="auth-card">
-      <div class="kicker">PASSENGER ACCOUNT / SECURE CHECK-IN</div>
-      <h1 id="authTitle">Welcome aboard.</h1>
-      <p class="auth-copy" id="authCopy">Sign in to keep your flights, study checklist and Air Miles synced to your account.</p>
-      <form id="authForm">
-        <label class="auth-label" for="authName" id="authNameLabel">CALLSIGN / NAME</label>
-        <input id="authName" class="auth-input hidden" type="text" maxlength="40" autocomplete="name" placeholder="Your passenger name">
-        <label class="auth-label" for="authUsername">USERNAME</label>
-        <input id="authUsername" class="auth-input" type="text" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="e.g. sid_aviator">
-        <label class="auth-label" for="authPassword">PASSWORD</label>
-        <input id="authPassword" class="auth-input" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters">
-        <button class="auth-submit" id="authSubmit" type="submit">SIGN IN</button>
-      </form>
-      <div class="auth-error hidden" id="authError" role="alert"></div>
-      <div class="auth-links"><button type="button" id="authSwitch">Create an account</button><span class="auth-help">USERNAME SIGN-IN</span></div>
-      <p class="auth-foot">Use a username and password to sign in. No email address is requested. Your profile, study tasks and Air Miles are synced securely to your account.</p>
-    </div>
-    <div class="auth-config-note" id="authConfigNote">Passengers sign in with a username and password only. No email address is needed.</div>
-  </div>
+<div id="halt" class="banner" hidden>
+  <span id="haltText"></span>
+  <button class="btn danger sm" id="resume">Resume flights now</button>
 </div>
 
-<div class="app hidden" id="app">
-  <header class="topbar">
-    <div class="brand"><div class="brand-mark"><svg class="plane-doodle" viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M2 34 Q12 40 23 29 Q26 26 23 23 L12 15 Q10 13 13 13 L24 19 Q27 20 29 17 L39 4 Q42 1 43 3 Q45 5 42 8 L34 20 Q32 23 35 25 L44 33 Q46 35 44 36 Q42 38 39 35 L29 27 Q27 25 25 28 Q13 40 2 34Z"/></svg></div><div><div class="brand-name">Dreamcore</div><div class="brand-sub">PASSENGER STUDY TERMINAL</div></div></div>
-    <div class="top-meta"><span class="meta-chip" id="connection">● DEMO MODE</span><span class="meta-chip"><strong id="xpPill">0</strong> AIR MILES</span><span class="meta-chip" id="rankPill">CADET</span><button class="meta-chip account-chip" id="accountButton" type="button"><span id="accountLabel">ACCOUNT</span> · SIGN OUT</button></div>
-  </header>
-
-  <section class="page-intro">
-    <div><div class="kicker">A DIFFERENT WAY TO GET THINGS DONE</div><h1>Your next study session<br>is ready for departure.</h1><p>Choose a route, take your seat, and make the time count.</p></div>
-    <div class="intro-index">TERMINAL 01 / CHECK-IN</div>
-  </section>
-
-  <section class="flight-section">
-    <div class="section-head"><div><div class="kicker">01 / DEPARTURE BOARD</div><div class="section-title" style="margin-top:5px">Choose your flight</div></div><span class="section-meta" id="flightCount">0 AVAILABLE</span></div>
-    <div class="flight-list" id="flightList"><div class="task-empty">Loading routes…</div></div>
-    <div class="selected-flight-summary hidden" id="selectedFlightSummary">
-      <div class="summary-route"><strong id="summaryOrigin">---</strong><span>→</span><strong id="summaryDestination">---</strong></div>
-      <div class="summary-meta"><span id="summaryFlight">FLIGHT —</span><span id="summaryDeparture">DEPARTURE —</span><span id="summaryDistance">— KM</span></div>
-      <button class="text-action" id="changeFlight" type="button">CHANGE FLIGHT</button>
-    </div>
-  </section>
-
-  <main class="booking-layout">
-    <section class="cabin-panel step-hidden" id="cabinPanel">
-      <div class="cabin-heading"><div><div class="kicker">02 / CABIN LAYOUT</div><h2>Select your seat</h2></div><small id="seatStatus">SELECT A FLIGHT FIRST</small></div>
-      <div class="cabin-legend"><span class="legend-item"><i class="legend-swatch"></i> Available</span><span class="legend-item"><i class="legend-swatch selected"></i> Selected</span><span class="legend-item"><i class="legend-swatch reserved"></i> Reserved</span></div>
-      <div class="cabin-scroll">
-        <div id="cabinEmpty" class="task-empty" style="text-align:center;padding:50px 15px">Select a departure above to view the cabin layout.</div>
-        <div class="aircraft-body hidden" id="aircraftBody">
-          <div class="aircraft-nose"><div class="cockpit-window"></div><span class="nose-label">FLIGHT DECK</span></div>
-          <div class="exit-row"><span><b class="exit-arrow">‹</b> EXIT</span><span>EXIT <b class="exit-arrow">›</b></span></div>
-          <div id="businessZone" class="cabin-zone business-zone"></div>
-          <div id="economyZone" class="cabin-zone economy-zone"></div>
-          <div class="cabin-tail">Dreamcore / CABIN</div>
-        </div>
+<!-- FLIGHTS -->
+<section class="panel" id="p-flights">
+  <h2>Allot a flight</h2>
+  <p class="sub">Allot a flight once and it flies at the same time every day on its own, as long as this page is open. Choose “One time only” for a single flight.</p>
+  <form id="ff" class="grid" autocomplete="off">
+    <div class="full">
+      <label>Flight type</label>
+      <div class="seg">
+        <label><input type="radio" name="type" value="Departure" checked><span>Departure</span></label>
+        <label><input type="radio" name="type" value="Arrival"><span>Arrival</span></label>
       </div>
-    </section>
-
-    <aside class="side-stack step-hidden" id="sideStack">
-      <section class="side-panel" id="passengerPanel">
-        <div class="side-head"><div><div class="kicker">03 / PASSENGER DETAILS</div><h2>Check in</h2></div><span class="step-tag">STEP 03</span></div>
-        <div id="reservationEmpty" class="task-empty">Choose a flight and seat to continue.</div>
-        <div id="reservationForm" class="hidden">
-          <div class="field"><label for="callsign">Passenger name / callsign</label><input id="callsign" maxlength="28" placeholder="Your name" autocomplete="name"></div>
-          <button class="primary-btn" id="confirmSeat" disabled>Confirm seat reservation</button>
-          <div id="boardingPass" class="pass-card hidden">
-            <div class="ticket-top"><span class="ticket-label">Dreamcore / BOARDING PASS</span><span class="ticket-status">CHECKED IN</span></div>
-            <div class="ticket-flight" id="ticketFlight">Flight FF —</div>
-            <div class="ticket-route"><div class="ticket-airport"><strong id="ticketOrigin">---</strong><small id="ticketOriginName">Origin</small></div><div class="ticket-line"><div class="plane-line"><b>✦</b></div><div id="ticketDuration">—</div></div><div class="ticket-airport right"><strong id="ticketDestination">---</strong><small id="ticketDestinationName">Destination</small></div></div>
-            <div class="ticket-sep"></div>
-            <div class="ticket-details"><div class="ticket-detail"><small>Passenger</small><b id="ticketPassenger">—</b></div><div class="ticket-detail"><small>Seat</small><b id="ticketSeat">—</b></div><div class="ticket-detail"><small>Departure</small><b id="ticketDeparture">—</b></div><div class="ticket-detail"><small>Distance</small><b id="ticketDistance">—</b></div><div class="ticket-detail"><small>Class</small><b>FOCUS</b></div><div class="ticket-detail"><small>Gate</small><b>01</b></div></div>
-            <div class="ticket-tear"></div><div class="ticket-barcode" id="ticketBarcode" aria-label="Decorative boarding barcode"></div><div class="ticket-code"><span id="ticketCode">FF / PASSENGER</span><span>BOARDING GROUP 01</span></div>
-          </div>
-          <button class="primary-btn hidden" style="margin-top:12px" id="boardFlight">Board flight <span aria-hidden="true">→</span></button>
-        </div>
-      </section>
-
-      <section class="side-panel tasks-panel step-hidden" id="tasksPanel">
-        <div class="side-head"><div><div class="kicker">04 / BEFORE TAKEOFF</div><h2>Study checklist</h2></div><span class="step-tag" id="taskCount">00 TASKS</span></div>
-        <div class="task-add"><input id="taskName" maxlength="100" placeholder="Add a study task"><button id="addTask">ADD +</button></div>
-        <div class="task-list" id="taskList"><div class="task-empty">Your checklist is empty.</div></div>
-      </section>
-    </aside>
-  </main>
-</div>
-
-<div id="flightMode" aria-live="polite">
-  <div class="hud-wrap">
-    <div class="hud-top"><span class="hud-brand">Dreamcore / IN-FLIGHT STUDY</span><button class="hud-exit" id="exitFlight">EXIT FLIGHT ×</button></div>
-    <div class="hud-main">
-      <section class="hud-card"><div class="hud-caption">Time Remaining</div><div class="flip-clock" aria-label="Time remaining"><span class="flip-digit" id="hh">00</span><span class="flip-sep">:</span><span class="flip-digit" id="mm">00</span><span class="flip-sep">:</span><span class="flip-digit" id="ss">00</span></div></section>
-      <section class="hud-card"><div class="hud-caption">Distance Remaining</div><div class="hud-value"><span id="hudLeft">0</span> <small>km</small></div></section>
     </div>
-    <div class="journey-progress">
-      <div class="journey-progress-head"><span>JOURNEY PROGRESS</span><strong id="journeyPercent">0%</strong></div>
-      <div class="journey-track"><i id="journeyFill"></i><b id="journeyPlane">✦</b></div>
-      <div class="journey-progress-foot"><span id="journeyStart">DEPARTURE</span><span id="journeyEnd">DESTINATION</span></div>
-    </div>
-    <div class="hud-secondary"><div class="hud-secondary-item"><span>Boarding Time</span><strong id="hudBoarding">—</strong></div><div class="hud-secondary-item"><span>Distance Covered</span><strong><span id="hudCovered">0</span> km</strong></div></div>
-    <div class="hud-task-area"><button class="hud-task-toggle" id="toggleHudTasks">OPEN STUDY CHECKLIST ↓</button><div class="hud-tasks hidden" id="hudTasks"></div></div>
-  </div>
+    <div><label for="no">Flight number</label><input id="no" required placeholder="e.g. DC 204" maxlength="10"></div>
+    <div><label for="air">Airline</label><input id="air" required placeholder="e.g. Dreamcore Air" maxlength="30"></div>
+    <div><label for="place" id="placeL">Destination</label><input id="place" required placeholder="e.g. Kolkata" maxlength="30"></div>
+    <div class="full"><label>How often</label><div class="seg"><label><input type="radio" name="rep" value="daily" checked><span>Every day</span></label><label><input type="radio" name="rep" value="once"><span>One time only</span></label></div></div>
+    <div><label for="time" id="tl">Time of flight (every day)</label><input id="time" type="time" required></div>
+    <div id="dateBox" hidden><label for="date">Date</label><input id="date" type="date"></div>
+    <div><label for="len">Study session length (minutes)</label><input id="len" type="number" min="5" max="480" value="50" required></div>
+    <div class="full"><label for="rwy">Runway</label><select id="rwy"></select></div>
+    <div class="full"><button class="btn" type="submit">Allot flight</button><p class="msg" id="fm" role="status"></p></div>
+  </form>
+  <div class="scroll" id="flightList"></div>
+</section>
+
+<!-- RUNWAYS -->
+<section class="panel" id="p-runways" hidden>
+  <h2>Runways and maintenance</h2>
+  <p class="sub">Stop flights for a set time while work is done. Closed runways cannot be allotted new flights.</p>
+  <div class="rw" id="rwStatus"></div>
+  <h3>Stop flights for maintenance</h3>
+  <form id="mf" class="grid" autocomplete="off">
+    <div><label for="scope">What to stop</label><select id="scope"></select></div>
+    <div><label for="dur">For how long</label>
+      <select id="dur"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="720">12 hours</option></select></div>
+    <div class="full"><label for="why">Reason</label><input id="why" placeholder="e.g. Runway lights repair" maxlength="60"></div>
+    <div class="full"><button class="btn danger" type="submit">Stop flights</button><p class="msg" id="mm" role="status"></p></div>
+  </form>
+</section>
+
+<!-- ALERTS -->
+<section class="panel" id="p-alerts" hidden>
+  <h2>Alerts</h2>
+  <p class="sub">A record of closures, resumptions and flight changes.</p>
+  <ul class="log" id="log"></ul>
+</section>
+
+<hr>
+<h2>ATC accounts</h2>
+<p class="sub">Add or remove people who can sign in.</p>
+<form class="row" id="af" autocomplete="off">
+  <div><label for="u">New username</label><input id="u" required maxlength="24"></div>
+  <div><label for="pw">Password</label><input id="pw" type="password" required minlength="6" autocomplete="new-password"></div>
+  <button class="btn" type="submit">Add account</button>
+</form>
+<p class="msg" id="am" role="status"></p>
+<div id="accts"></div>
+</div>
 </div>
 
-<div class="modal-backdrop hidden" id="completionModal" role="dialog" aria-modal="true" aria-labelledby="completionTitle">
-  <div class="modal"><div class="kicker">Dreamcore / ARRIVAL</div><h2 id="completionTitle">Flight complete</h2><p id="completionMessage">Your study flight is complete.</p><div class="modal-stat-grid"><div class="modal-stat"><small>AIR MILES EARNED</small><strong id="earnedXP">+0 XP</strong></div><div class="modal-stat"><small>TOTAL AIR MILES</small><strong id="totalXP">0 XP</strong></div></div><div class="modal-stat"><small>PILOT RANK</small><strong id="newRank">CADET</strong></div><button class="primary-btn" style="margin-top:15px" id="closeDebrief">Return to terminal</button></div>
-</div>
+<script>
+(function(){
+var KEY="dreamcore-atc-v1",RW=["09L","09R","27L","27R"];
+var S={flights:[],closed:{},halt:null,log:[],accts:[],sess:null,done:[],mode:"pax"};
+try{var r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function fmt(t){return new Date(t).toLocaleString([], {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
+function left(t){var m=Math.max(0,Math.ceil((t-Date.now())/60000));return m>=60?Math.floor(m/60)+" h "+(m%60)+" min":m+" min"}
+function note(t){S.log.unshift({t:Date.now(),m:t});S.log=S.log.slice(0,60)}
+function blocked(rw){if(S.halt&&S.halt.until>Date.now())return "All flights";if(S.closed[rw]&&S.closed[rw].until>Date.now())return "Runway "+rw;return null}
 
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,getDocs,doc,getDoc,setDoc,onSnapshot,runTransaction,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+/* tabs */
+function show(t){document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
+ ["flights","runways","alerts"].forEach(function(k){$("p-"+k).hidden=k!==t})}
+document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){show(b.dataset.t)}});
 
-/* Firebase Web App config. Keep apiKey empty to use the included demo flights.
-   Firestore document: flights/{flightId}
-   { flightNumber, origin, destination, originName, destinationName,
-     distanceKm, departureAt, arrivalAt }
-   Seat reservations: flights/{flightId}/seats/{seatId}
-*/
-const firebaseConfig = {
-  apiKey: "AIzaSyCtt1k2EFdJXEwCLo2jZsGEf2742fHZrzk",
-  authDomain: "flyo-r3vxy.firebaseapp.com",
-  projectId: "flyo-r3vxy",
-  storageBucket: "flyo-r3vxy.firebasestorage.app",
-  messagingSenderId: "651442899138",
-  appId: "1:651442899138:web:4441e681d46ba732ee135b",
-  measurementId: "G-RSW2194EWS"
-};
-const $=id=>document.getElementById(id);
-const seatIds=[...Array.from({length:4},(_,r)=>["A","C","D","F"].map(c=>`${r+1}${c}`)).flat(),...Array.from({length:9},(_,r)=>["A","B","C","D","E","F"].map(c=>`${r+5}${c}`)).flat()];
-const plusMinutes=n=>new Date(Date.now()+n*60000).toISOString();
-const demoFlights=[
- {id:"ff101",flightNumber:"FF 101",origin:"KOL",destination:"DEL",originName:"Kolkata",destinationName:"New Delhi",distanceKm:1310,departureAt:plusMinutes(-8),arrivalAt:plusMinutes(82)},
- {id:"ff204",flightNumber:"FF 204",origin:"BLR",destination:"MUM",originName:"Bengaluru",destinationName:"Mumbai",distanceKm:840,departureAt:plusMinutes(18),arrivalAt:plusMinutes(108)},
- {id:"ff309",flightNumber:"FF 309",origin:"HYD",destination:"CHE",originName:"Hyderabad",destinationName:"Chennai",distanceKm:520,departureAt:plusMinutes(130),arrivalAt:plusMinutes(210)}
-];
-let appInstance=null,db=null,currentUser=null,authMode="login",profileSaveTimer=null,flightRefreshTimer=null;
-let flights=[],selectedFlight=null,selectedSeat=null,reservation=null,seatUnsubscribe=null;
-let tasks=[],currentFlight=null,flightStartedAt=null,flightTimer=null,dimTimer=null,demoReservations={};
+/* selects */
+$("rwy").innerHTML=RW.map(function(r){return"<option>"+r+"</option>"}).join("");
+$("scope").innerHTML='<option value="ALL">All flights (whole airport)</option>'+RW.map(function(r){return'<option value="'+r+'">Runway '+r+" only</option>"}).join("");
+document.querySelectorAll('input[name=type]').forEach(function(i){i.onchange=function(){$("placeL").textContent=i.value==="Departure"?"Destination":"Arriving from"}});
+function isDaily(){return document.querySelector('input[name=rep]:checked').value==="daily"}
+function mins(hm){var p=hm.split(":");return +p[0]*60+ +p[1]}
+function repUI(){var d=isDaily();$("dateBox").hidden=d;$("date").required=!d;$("tl").textContent=d?"Time of flight (every day)":"Time of flight"}
+document.querySelectorAll('input[name=rep]').forEach(function(i){i.onchange=repUI});
 
-function toDate(value){if(value?.toDate)return value.toDate();if(value instanceof Date)return value;return new Date(value)}
-function statusOf(f){const now=Date.now(),depart=toDate(f.departureAt).getTime(),arrive=toDate(f.arrivalAt).getTime();if(now>=depart&&now<arrive)return"IN_FLIGHT";if(now>=depart-30*60000&&now<depart)return"BOARDING";return"UPCOMING"}
-function fmtDate(value){const d=toDate(value);return Number.isNaN(d.getTime())?"TBA":d.toLocaleString([],{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}
-function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function rankFor(xp){return xp>=1500?"Ace Pilot":xp>=700?"Captain":xp>=250?"First Officer":"Cadet"}
-function updatePilot(){const xp=Number(localStorage.getItem("focusFlightXP")||0);$("xpPill").textContent=xp.toLocaleString();$("rankPill").textContent=rankFor(xp).toUpperCase()}
-function seatSvg(state){const back=state==="selected"?"#d8c333":state==="reserved"?"#414747":"#67717b",cushion=state==="selected"?"#f2d62e":state==="reserved"?"#555c5d":"#87919d",outline=state==="selected"?"#fff2a5":"#aab1b5";return `<svg class="seat-icon" viewBox="0 0 54 58" aria-hidden="true"><path d="M12 9 Q12 4 18 4 H36 Q42 4 42 10 L45 32 Q45 38 39 38 H15 Q9 38 9 32 Z" fill="${back}" stroke="${outline}" stroke-opacity=".2"/><path d="M15 12 Q15 9 19 9 H35 Q39 9 39 13 L37 27 Q36 31 32 31 H22 Q18 31 17 27 Z" fill="${cushion}"/><rect x="8" y="32" width="38" height="13" rx="5" fill="${state==="selected"?"#d1b72c":"#4d555d"}"/><path d="M12 44 L9 51 H17 L19 45 M42 44 L45 51 H37 L35 45" fill="#7d858a"/><path d="M6 31 H10 M44 31 H48" stroke="#586064" stroke-width="4" stroke-linecap="round"/></svg>`}
-function barcode(){const seed=(selectedFlight?.id||"ff")+(reservation?.seat||"");let n=0;for(let i=0;i<seed.length;i++)n=(n*31+seed.charCodeAt(i))>>>0;let out="";for(let i=0;i<92;i++){n=(n*1664525+1013904223)>>>0;const w=1+(n%3),gap=(n>>>4)%3;out+=`<i style="width:${w}px;opacity:${.65+((n>>>8)%35)/100};margin-right:${gap}px"></i>`}$("ticketBarcode").innerHTML=out}
+/* allot */
+$("ff").onsubmit=function(e){e.preventDefault();var m=$("fm"),rw=$("rwy").value,daily=isDaily(),hm=$("time").value,when=daily?0:new Date($("date").value+"T"+hm).getTime();
+ var b=blocked(rw);
+ if(b&&!daily){m.className="msg err";m.textContent=b+" is stopped for maintenance. Pick another runway or wait until it reopens.";return}
+ if(S.closed[rw]&&S.closed[rw].until>when){}
+ var dup=S.flights.some(function(f){return f.rw===rw&&f.status!=="Cancelled"&&(daily?(f.daily&&Math.abs(mins(f.hm)-mins(hm))<5):(!f.daily&&Math.abs(f.when-when)<5*60000))});
+ if(dup){m.className="msg err";m.textContent="Runway "+rw+" already has a flight within 5 minutes of that time. Choose another time or runway.";return}
+ var f={id:Date.now(),type:document.querySelector('input[name=type]:checked').value,no:$("no").value.trim().toUpperCase(),air:$("air").value.trim(),place:$("place").value.trim(),when:when,rw:rw,status:"Scheduled",daily:daily,hm:hm,len:+$("len").value||50};
+ S.flights.push(f);S.flights.sort(function(a,b){return (b.daily?1:0)-(a.daily?1:0)||(a.daily?mins(a.hm)-mins(b.hm):a.when-b.when)});note("Flight "+f.no+" allotted to runway "+rw+(daily?", flies every day at "+hm:" (one time)"));save();
+ m.className="msg ok";m.textContent="Flight "+f.no+" allotted to runway "+rw+(daily?". It will fly every day at "+hm+".":".");$("ff").reset();repUI();draw()};
 
-/* ───────── Username sign-in (simple: username + password, nothing else) ───────── */
-function setAuthError(message){$("authError").textContent=message;$("authError").classList.remove("hidden")}
-function clearAuthError(){$("authError").textContent="";$("authError").classList.add("hidden")}
-function setAuthMode(mode){
- authMode=mode;clearAuthError();
- const signup=mode==="signup";
- $("authTitle").textContent=signup?"Create your passenger account.":"Welcome aboard.";
- $("authCopy").textContent=signup?"Choose a username and password. Your passenger profile, study checklist and Air Miles will follow you across devices.":"Sign in with your username to restore your saved flights and study progress.";
- $("authName").classList.toggle("hidden",!signup);
- $("authName").required=false; $("authName").placeholder="Optional passenger display name";
- $("authNameLabel").classList.toggle("hidden",!signup);
- $("authPassword").autocomplete=signup?"new-password":"current-password";
- $("authSubmit").textContent=signup?"CREATE ACCOUNT":"SIGN IN";
- $("authSwitch").textContent=signup?"Already have an account? Sign in":"Create an account";
-}
-$("authSwitch").addEventListener("click",()=>setAuthMode(authMode==="login"?"signup":"login"));
-function authMessage(error){
- const code=error?.code||"";
- const wrong="Wrong username or password.";
- const messages={
-  "auth/invalid-email":"That username can't be used. Use letters, numbers, dots, underscores or hyphens.",
-  "auth/user-not-found":wrong,
-  "auth/wrong-password":wrong,
-  "auth/invalid-credential":wrong,
-  "auth/invalid-login-credentials":wrong,
-  "auth/missing-password":"Enter your password.",
-  "auth/email-already-in-use":"That username is already taken. Choose another, or sign in.",
-  "auth/weak-password":"Use a password with at least 6 characters.",
-  "auth/too-many-requests":"Too many attempts. Wait a little and try again.",
-  "auth/network-request-failed":"Network error. Check your internet connection.",
-  "auth/configuration-not-found":"Firebase Authentication isn't set up yet for this project. Open Firebase Console → Build → Authentication → Get started, then enable Email/Password.",
-  "permission-denied":"The database is blocking this. In Firebase → Firestore Database → Rules, allow access to the users collection (see setup note).",
-  "unavailable":"Can't reach the database. Check your internet connection.",
-  "auth/operation-not-allowed":"Sign-in is not switched on yet. In Firebase, enable Authentication → Sign-in method → Email/Password."
- };
- return messages[code]||error?.message||"Sign-in failed. Please try again.";
-}
-function normalizeUsername(value){return value.trim().toLowerCase()}
-function validUsername(value){return /^[a-z0-9][a-z0-9._-]{2,19}$/.test(value)&&!/[._-]{2}/.test(value)}
-const SESSION_KEY="dreamcore_session";
-const enc=new TextEncoder();
-async function hashPassword(pw,salt){
- if(!(window.crypto&&crypto.subtle))throw new Error("Open this page over https to sign in.");
- const key=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]);
- const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:enc.encode(salt),iterations:100000,hash:"SHA-256"},key,256);
- return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-function newSalt(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(b=>b.toString(16).padStart(2,"0")).join("")}
-async function startSession(username){
- localStorage.setItem(SESSION_KEY,JSON.stringify({u:username,exp:Date.now()+30*24*3600*1000}));
- await enterApp(username);
-}
-async function enterApp(username){
- /* email is only a compatibility shim: older code derives the username from it */
- currentUser={uid:username,username,displayName:"",email:username+"@local"};
- startMaintenanceWatch(true);
- try{
-  await loadProfile(currentUser);
-  $("authScreen").classList.add("hidden");$("app").classList.remove("hidden");
-  await loadFlights();
- }catch(error){
-  console.error("Could not open account:",error);
-  if(/no longer exists/.test(error.message))localStorage.removeItem(SESSION_KEY);
-  currentUser=null;
-  $("app").classList.add("hidden");$("authScreen").classList.remove("hidden");
-  setAuthError(error.code?authMessage(error):error.message);
- }
-}
-function restoreSession(){
- try{
-  const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"null");
-  if(s&&s.u&&s.exp>Date.now())return enterApp(s.u);
- }catch(e){}
- localStorage.removeItem(SESSION_KEY);
-}
-$("authForm").addEventListener("submit",async event=>{
- event.preventDefault();clearAuthError();
- if(!db){setAuthError("The database is not connected. Check the Firebase configuration in this file.");return}
- const username=normalizeUsername($("authUsername").value);
- const password=$("authPassword").value;
- const callsign=$("authName").value.trim()||username;
- if(!validUsername(username)){setAuthError("Username: 3–20 characters, using letters, numbers, dots, underscores or hyphens, starting with a letter or number.");return}
- $("authSubmit").disabled=true;
- try{
-  const ref=doc(db,"users",username);
-  if(authMode==="signup"){
-   if(password.length<6)throw new Error("Use a password with at least 6 characters.");
-   const salt=newSalt(),passHash=await hashPassword(password,salt);
-   await runTransaction(db,async tx=>{
-    const snap=await tx.get(ref);
-    if(snap.exists())throw new Error("That username is already taken. Choose another, or sign in.");
-    tx.set(ref,{username,displayName:callsign,salt,passHash,airMiles:0,pilotRank:"Cadet",tasks:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-   });
-   await startSession(username);
-  }else{
-   const snap=await getDoc(ref);
-   const d=snap.exists()?snap.data():null;
-   if(!d||!d.passHash||await hashPassword(password,d.salt)!==d.passHash)throw new Error("Wrong username or password.");
-   await startSession(username);
-  }
- }catch(error){setAuthError(error.code?authMessage(error):error.message)}
- finally{$("authSubmit").disabled=false;$("authPassword").value=""}
-});
-$("accountButton").addEventListener("click",()=>{
- if(!currentUser)return;
- if(!confirm("Sign out of Dreamcore? Your saved account data will remain."))return;
- localStorage.removeItem(SESSION_KEY);
- location.reload();
-});
-function saveProfile(){
- if(!currentUser||!db)return;
- clearTimeout(profileSaveTimer);
- profileSaveTimer=setTimeout(async()=>{
-  try{
-   await setDoc(doc(db,"users",currentUser.uid),{
-    displayName:currentUser.displayName||$("accountLabel").textContent,
-    username:currentUser.email?.split("@")[0]||"",
-    tasks:tasks.map(t=>({name:t.name,done:!!t.done})),
-    airMiles:Number(localStorage.getItem("focusFlightXP")||0),
-    pilotRank:rankFor(Number(localStorage.getItem("focusFlightXP")||0)),
-    updatedAt:serverTimestamp()
-   },{merge:true});
-  }catch(error){console.error("Profile save failed:",error);$("connection").textContent="● SAVE ERROR"}
- },350);
-}
-async function loadProfile(user){
- const snap=await getDoc(doc(db,"users",user.uid));
- if(!snap.exists())throw new Error("This account no longer exists. Create it again.");
- const data=snap.data();
- user.displayName=data.displayName||user.username;
- tasks=Array.isArray(data.tasks)?data.tasks.filter(t=>t&&typeof t.name==="string").map(t=>({name:t.name,done:!!t.done})): [];
- const xp=Number(data.airMiles??0);
- localStorage.setItem("focusFlightXP",String(Number.isFinite(xp)?xp:0));
- updatePilot();renderTasks();
- $("accountLabel").textContent=user.username.slice(0,18).toUpperCase();
-}
-async function loadFlights(){
- try{
-  const snap=await getDocs(collection(db,"flights"));
-  flights=snap.docs.map(d=>({id:d.id,...d.data()}));
-  $("connection").textContent="● FIRESTORE";$("connection").style.color="var(--green)";
- }catch(error){
-  console.error("Flight loading failed:",error);
-  flights=demoFlights;$("connection").textContent="● DEMO FLIGHTS";$("connection").title=error.message;
- }
- renderFlights();clearInterval(flightRefreshTimer);flightRefreshTimer=setInterval(renderFlights,15000);
-}
+/* maintenance */
+$("mf").onsubmit=function(e){e.preventDefault();var sc=$("scope").value,mins=+$("dur").value,why=$("why").value.trim()||"Maintenance",until=Date.now()+mins*60000;
+ if(sc==="ALL")S.halt={until:until,why:why};else S.closed[sc]={until:until,why:why};
+ note((sc==="ALL"?"All flights":"Runway "+sc)+" stopped for "+left(until)+": "+why);save();
+ $("mm").className="msg ok";$("mm").textContent=(sc==="ALL"?"All flights":"Runway "+sc)+" stopped until "+fmt(until)+".";$("why").value="";draw()};
+$("resume").onclick=function(){S.halt=null;note("All flights resumed");save();draw()};
 
-let maintenanceUnsubscribe=null;
-function renderMaintenanceGate(mode,data={}){
- const layer=$("maintenanceScreen");
- if(!layer)return;
- const title=$("maintenanceTitle"),message=$("maintenanceMessage"),foot=$("maintenanceFoot");
- if(mode==="open"){
-  layer.classList.add("hidden");
-  return;
- }
- layer.classList.remove("hidden");
- if(mode==="checking"){
-  title.textContent="Checking service status";
-  message.textContent="Connecting to the operations desk. Please wait.";
-  foot.textContent="VERIFYING CONNECTION";
- }else if(mode==="maintenance"){
-  title.textContent=data.title||"A short pause.";
-  message.textContent=data.message||"Dreamcore is temporarily unavailable while we carry out maintenance.";
-  foot.textContent="PASSENGER SERVICE PAUSED";
- }else{
-  title.textContent="Service status unavailable";
-  message.textContent="Dreamcore cannot verify whether passenger services are open. Please refresh in a moment.";
-  foot.textContent="CONNECTION CHECK FAILED";
- }
-}
-function startMaintenanceWatch(quiet){
- if(maintenanceUnsubscribe){maintenanceUnsubscribe();maintenanceUnsubscribe=null}
- if(!quiet)renderMaintenanceGate("checking");
- const statusRef=doc(db,"systemSettings","maintenance");
- maintenanceUnsubscribe=onSnapshot(statusRef,snapshot=>{
-  const state=snapshot.exists()?snapshot.data():{enabled:false};
-  if(state.enabled===true)renderMaintenanceGate("maintenance",state);
-  else renderMaintenanceGate("open");
- },error=>{
-  console.error("Maintenance status listener failed:",error);
-  /* Rules that require sign-in must not lock people out of the login screen.
-     The watch restarts automatically once the passenger signs in. */
-  if(error?.code==="permission-denied")renderMaintenanceGate("open");
-  else renderMaintenanceGate("error");
- });
-}
+/* flight actions */
+$("flightList").onclick=function(e){var b=e.target.closest("button");if(!b)return;var f=S.flights.find(function(x){return x.id==b.dataset.id});if(!f)return;
+ if(b.dataset.a==="clear"){var bl=blocked(f.rw);if(bl){$("fm").className="msg err";$("fm").textContent="Cannot clear: "+bl+" is stopped.";return}f.status="Cleared";note("Flight "+f.no+" cleared on "+f.rw)}
+ else if(b.dataset.a==="pause"){f.paused=!f.paused;note("Daily flight "+f.no+(f.paused?" paused":" resumed"))}
+ else if(b.dataset.a==="remove"){S.flights=S.flights.filter(function(x){return x!==f});note("Daily flight "+f.no+" removed")}
+ else{f.status="Cancelled";note("Flight "+f.no+" cancelled")}save();draw()};
+$("rwStatus").onclick=function(e){var b=e.target.closest("button");if(!b)return;delete S.closed[b.dataset.rw];note("Runway "+b.dataset.rw+" reopened");save();draw()};
 
-function startFirebase(){
- if(!firebaseConfig.apiKey||!firebaseConfig.projectId){
-  $("authConfigNote").textContent="Firebase setup required: add your Web App config and create a Firestore database. Passengers only enter a username and password.";
-  $("authConfigNote").classList.add("config-warning");
-  setAuthError("The account system needs your Firebase project configuration before sign-up or sign-in can work.");
-  renderMaintenanceGate("open");
-  return;
- }
- try{
-  appInstance=initializeApp(firebaseConfig);db=getFirestore(appInstance);
-  startMaintenanceWatch();
-  restoreSession();
- }catch(error){console.error(error);setAuthError("Firebase configuration is invalid: "+error.message);renderMaintenanceGate("open")}
-}
+/* accounts */
+$("af").onsubmit=function(e){e.preventDefault();var u=$("u").value.trim(),m=$("am");
+ if(S.accts.indexOf(u)>-1){m.className="msg err";m.textContent="That username already exists.";return}
+ S.accts.push(u);note("Account added: "+u);save();$("u").value="";$("pw").value="";m.className="msg ok";m.textContent="Account added.";draw()};
+$("accts").onclick=function(e){var b=e.target.closest("button");if(!b)return;S.accts=S.accts.filter(function(x){return x!==b.dataset.u});save();draw()};
 
-function renderFlights(){
- const count=flights.filter(f=>statusOf(f)!=="IN_FLIGHT").length;$("flightCount").textContent=`${count} AVAILABLE / ${flights.length} TOTAL`;
- $("flightList").innerHTML=flights.length?flights.map(f=>{const state=statusOf(f),disabled=state==="IN_FLIGHT";const mins=Math.max(0,Math.round((toDate(f.arrivalAt)-toDate(f.departureAt))/60000));return `<button class="flight-card ${selectedFlight?.id===f.id?"selected":""}" data-flight="${escapeHtml(f.id)}" ${disabled?"disabled":""}><div class="flight-card-top"><span class="flight-code">${escapeHtml(f.flightNumber||f.id)}</span><span class="flight-state ${state}">${state.replace("_"," ")}</span></div><div class="flight-route"><div><div class="airport-code">${escapeHtml(f.origin||"---")}</div><div class="airport-city">${escapeHtml(f.originName||"Departure")}</div></div><div class="route-middle"><span>→</span></div><div><div class="airport-code">${escapeHtml(f.destination||"---")}</div><div class="airport-city">${escapeHtml(f.destinationName||"Arrival")}</div></div></div><div class="flight-card-foot"><span>${fmtDate(f.departureAt)}</span><span>${Number(f.distanceKm||0).toLocaleString()} KM</span><span>${mins} MIN</span></div></button>`}).join(""):'<div class="task-empty">No flight documents were found in the flights collection.</div>';
- document.querySelectorAll("[data-flight]").forEach(b=>b.addEventListener("click",()=>{const f=flights.find(x=>x.id===b.dataset.flight);selectFlight(f);$("cabinPanel")?.scrollIntoView?.({behavior:"smooth",block:"start"})}));
+function dkey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function runDaily(){var n=new Date(),key=dkey(n),cur=n.getHours()*60+n.getMinutes(),ch=false,ds=n.toLocaleDateString([],{day:"2-digit",month:"short"}),ts=n.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ S.flights.forEach(function(f){if(!f.daily||f.paused||f.last===key)return;var late=cur-mins(f.hm);if(late<0)return;
+  var dep=f.type==="Departure";
+  if(late>30){f.last=key;f.lastMsg="Did not fly "+ds;note("Flight "+f.no+" did not fly today (runway stopped or page was closed)");ch=true}
+  else if(!blocked(f.rw)){f.last=key;f.lastMsg=(dep?"Departed ":"Arrived ")+ds+" "+ts;note("Flight "+f.no+(dep?" departed from ":" arrived on ")+"runway "+f.rw+" at "+ts);ch=true}});
+ if(ch)save()}
+function dailyRow(f){var st=f.paused?"Paused":(blocked(f.rw)?"Held":"Daily");
+ var last=f.last?"<br><small style='color:var(--mute)'>Last: "+esc(f.lastMsg)+"</small>":"";
+ return "<tr><td><b>"+esc(f.no)+"</b><br><small style='color:var(--mute)'>"+esc(f.air)+"</small></td><td>"+f.type+"</td><td>"+esc(f.place)+"</td><td>Every day<br><b>"+f.hm+"</b></td><td>"+f.rw+'</td><td><span class="pill s-'+st+'">'+st+"</span>"+last+'</td><td><button class="btn sm" data-a="pause" data-id="'+f.id+'">'+(f.paused?"Resume":"Pause")+'</button> <button class="btn sm danger" data-a="remove" data-id="'+f.id+'">Remove</button></td></tr>'}
+function mmss(ms){var s=Math.ceil(ms/1000),m=Math.floor(s/60);return m+":"+("0"+s%60).slice(-2)}
+function mode(m){document.querySelectorAll(".mode").forEach(function(b){b.setAttribute("aria-selected",b.dataset.m===m)});$("v-pax").hidden=m!=="pax";$("v-atc").hidden=m!=="atc";S.mode=m;save()}
+document.querySelectorAll(".mode").forEach(function(b){b.onclick=function(){mode(b.dataset.m)}});
+function finish(early){var s=S.sess;if(!s)return;var mins=early?Math.max(1,Math.round((Date.now()-s.start)/60000)):s.len;
+ S.done.push({no:s.no,mins:mins,at:Date.now()});S.sess=null;note("Flight "+s.no+" landed after "+mins+" min of study");save();
+ $("paxMsg").className="msg ok";$("paxMsg").textContent="Flight "+s.no+" has landed. "+mins+" minutes studied.";paxDraw();sessTick()}
+function sessTick(){var s=S.sess,p=$("paxFlight");if(!s){p.hidden=true;p.dataset.k="";return}
+ var left=s.start+s.len*60000-Date.now();if(left<=0){finish(false);return}
+ p.hidden=false;
+ if(p.dataset.k!==String(s.start)){p.dataset.k=String(s.start);p.innerHTML='<h2>In the air: '+esc(s.no)+'</h2><p class="sub">'+(s.dep?"To ":"From ")+esc(s.place)+'. Stay focused until you land.</p><div id="cd" style="font-size:44px;font-weight:600"></div><div class="bar"><i id="bar"></i></div><button class="btn danger" id="land">Land early</button>'}
+ $("cd").textContent=mmss(left);$("bar").style.width=(100-left/(s.len*60000)*100)+"%"}
+$("paxFlight").onclick=function(e){if(e.target.id==="land")finish(true)};
+$("board").onclick=function(e){var b=e.target.closest("button");if(!b)return;var f=S.flights.find(function(x){return x.id==b.dataset.take});if(!f)return;var m=$("paxMsg");
+ if(S.sess){m.className="msg err";m.textContent="You are already in the air. Land your current flight first.";return}
+ var bl=blocked(f.rw);if(bl){m.className="msg err";m.textContent=bl+" is stopped for maintenance.";return}
+ S.sess={no:f.no,place:f.place,dep:f.type==="Departure",len:f.len||50,start:Date.now()};note("Passenger boarded flight "+f.no);save();m.textContent="";sessTick()};
+function paxDraw(){var now=Date.now(),h=S.halt;
+ $("paxHalt").hidden=!h;if(h)$("paxHalt").innerHTML="<span>All flights are stopped for maintenance: "+esc(h.why)+". They reopen in "+left(h.until)+".</span>";
+ var list=S.flights.filter(function(f){return f.status!=="Cancelled"&&!f.paused&&(f.daily||f.when>now-(f.len||50)*60000)});
+ $("board").innerHTML=list.length?list.map(function(f){var held=blocked(f.rw),dep=f.type==="Departure";
+  return '<div class="fl"><div><b>'+esc(f.no)+'</b> <small>'+esc(f.air)+'</small><br>'+(dep?"To ":"From ")+esc(f.place)+'</div><div>'+(f.daily?"Every day at "+f.hm:fmt(f.when))+'<br><small>Runway '+f.rw+", "+(f.len||50)+" min</small></div><div>"+(held?'<span class="pill s-Held">Held</span>':'<button class="btn" data-take="'+f.id+'">Take seat</button>')+"</div></div>"}).join(""):'<p class="empty">No flights yet. Open ATC control and allot a flight, and it will show up here.</p>';
+ var tot=S.done.reduce(function(a,d){return a+d.mins},0);
+ $("paxStats").textContent=S.done.length?S.done.length+" flights landed, "+tot+" minutes studied.":""}
+function draw(){
+ var now=Date.now();
+ if(S.halt&&S.halt.until<=now){S.halt=null;note("Stop ended: all flights resumed");save()}
+ RW.forEach(function(r){if(S.closed[r]&&S.closed[r].until<=now){delete S.closed[r];note("Runway "+r+" reopened");save()}});
+ runDaily();paxDraw();var h=S.halt;$("halt").hidden=!h;if(h)$("haltText").textContent="All flights stopped: "+h.why+". Reopens in "+left(h.until)+".";
+ $("rwStatus").innerHTML=RW.map(function(r){var c=S.closed[r];return c?'<div class="closed"><b>'+r+'</b><small>Closed: '+esc(c.why)+'<br>'+left(c.until)+' left</small><button class="btn sm" data-rw="'+r+'" style="margin-top:8px">Reopen</button></div>':'<div><b>'+r+'</b><small>Open</small></div>'}).join("");
+ var rows=S.flights.map(function(f){if(f.daily)return dailyRow(f);var st=f.status;if(st==="Scheduled"&&blocked(f.rw))st="Held";
+  return"<tr><td><b>"+esc(f.no)+"</b><br><small style='color:var(--mute)'>"+esc(f.air)+"</small></td><td>"+f.type+"</td><td>"+esc(f.place)+"</td><td>"+fmt(f.when)+"</td><td>"+f.rw+'</td><td><span class="pill s-'+st+'">'+st+"</span></td><td>"+(f.status==="Cancelled"?"":(f.status==="Scheduled"?'<button class="btn sm" data-a="clear" data-id="'+f.id+'">Clear</button> ':"")+'<button class="btn sm danger" data-a="cancel" data-id="'+f.id+'">Cancel</button>')+"</td></tr>"}).join("");
+ $("flightList").innerHTML=rows?"<table><thead><tr><th>Flight</th><th>Type</th><th>Place</th><th>Time</th><th>Runway</th><th>Status</th><th></th></tr></thead><tbody>"+rows+"</tbody></table>":'<p class="empty">No flights allotted yet. Use the form above to add the first one.</p>';
+ $("log").innerHTML=S.log.length?S.log.map(function(l){return"<li><time>"+fmt(l.t)+"</time>"+esc(l.m)+"</li>"}).join(""):'<li class="empty">No alerts yet.</li>';
+ $("accts").innerHTML=S.accts.length?S.accts.map(function(u){return'<p style="display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;margin:0">'+esc(u)+' <button class="btn sm danger" data-u="'+esc(u)+'">Remove</button></p>'}).join(""):'<p class="empty">No accounts yet.</p>';
 }
-function selectFlight(f){
- if(!f||statusOf(f)==="IN_FLIGHT")return;
- if(seatUnsubscribe){seatUnsubscribe();seatUnsubscribe=null}
- selectedFlight=f;selectedSeat=null;reservation=null;
- window.reservedSeats=db?{}:(demoReservations[f.id]||{});
- $("cabinEmpty").classList.add("hidden");$("aircraftBody").classList.remove("hidden");
- $("cabinPanel").classList.remove("step-hidden");$("cabinPanel").classList.add("step-reveal");
- $("sideStack").classList.add("step-hidden");$("passengerPanel").classList.add("step-hidden");$("tasksPanel").classList.add("step-hidden");
- $("reservationEmpty").classList.remove("hidden");$("reservationForm").classList.add("hidden");
- $("boardingPass").classList.add("hidden");$("boardFlight").classList.add("hidden");
- $("confirmSeat").classList.remove("hidden");$("confirmSeat").disabled=true;$("callsign").value="";
- $("seatStatus").textContent=`${f.flightNumber||f.id} / SELECT SEAT`;
- $("summaryOrigin").textContent=f.origin||"---";$("summaryDestination").textContent=f.destination||"---";
- $("summaryFlight").textContent=`${f.flightNumber||f.id}`;
- $("summaryDeparture").textContent=fmtDate(f.departureAt);
- $("summaryDistance").textContent=`${Number(f.distanceKm||0).toLocaleString()} KM`;
- $("selectedFlightSummary").classList.remove("hidden");
- document.querySelector(".flight-section").classList.add("is-collapsed");
- renderFlights();renderSeats();
- if(db){seatUnsubscribe=onSnapshot(collection(db,"flights",f.id,"seats"),snap=>{window.reservedSeats={};snap.forEach(d=>{const data=d.data();window.reservedSeats[d.id]=data;if(data.uid===currentUser?.uid){selectedSeat=d.id;reservation={passenger:data.passenger,seat:d.id};$("callsign").value=data.passenger||currentUser.displayName||"";}});renderSeats();if(reservation){$("reservationEmpty").classList.add("hidden");$("reservationForm").classList.remove("hidden");$("sideStack").classList.remove("step-hidden");$("passengerPanel").classList.remove("step-hidden");$("tasksPanel").classList.remove("step-hidden");$("confirmSeat").classList.add("hidden");$("boardFlight").classList.remove("hidden");renderTicket();$("boardingPass").classList.remove("hidden")}},e=>console.error("Seat listener:",e))}
-}
-function seatCellMarkup(id){const record=(window.reservedSeats||{})[id],state=record?"reserved":selectedSeat===id?"selected":"available";return `<div class="seat-cell"><button class="seat-button ${state}" data-seat="${id}" ${record?"disabled":""} aria-label="Seat ${id}${record?", reserved":""}" aria-pressed="${selectedSeat===id}">${seatSvg(state)}<span class="seat-id">${id}</span></button></div>`}
-function rowMarkup(row,letters){const cells=[...letters.slice(0,3).map(c=>seatCellMarkup(`${row}${c}`)),`<div class="row-no">${row}</div>`,...letters.slice(3).map(c=>seatCellMarkup(`${row}${c}`))];return `<div class="seat-row">${cells.join("")}</div>`}
-function renderSeats(){if(!selectedFlight)return;const business=[1,2,3,4],economy=[5,6,7,8,9,10,11,12,13];const businessHeaders='<div class="column-heads"><span>A</span><span class="blank"></span><span>C</span><span></span><span>D</span><span class="blank"></span><span>F</span></div>';const economyHeaders='<div class="column-heads"><span>A</span><span>B</span><span>C</span><span></span><span>D</span><span>E</span><span>F</span></div>';$("businessZone").innerHTML=`<div class="zone-heading"><b>BUSINESS</b><small>1 — 4</small></div>${businessHeaders}${business.map(r=>rowMarkup(r,["A","C","D","F"])).join("")}`;$("economyZone").innerHTML=`<div class="zone-heading"><b>ECONOMY</b><small>5 — 13</small></div>${economyHeaders}${economy.map(r=>rowMarkup(r,["A","B","C","D","E","F"])).join("")}`;document.querySelectorAll("[data-seat]").forEach(b=>b.addEventListener("click",()=>{selectedSeat=b.dataset.seat;$("seatStatus").textContent=`SEAT ${selectedSeat} SELECTED`;renderSeats();$("sideStack").classList.remove("step-hidden");$("sideStack").classList.add("step-reveal");$("passengerPanel").classList.remove("step-hidden");$("passengerPanel").classList.add("step-reveal");$("reservationEmpty").classList.add("hidden");$("reservationForm").classList.remove("hidden");$("confirmSeat").disabled=!(selectedSeat&&$("callsign").value.trim());$("sideStack").scrollIntoView({behavior:"smooth",block:"start"})}))}
-$("changeFlight").addEventListener("click",()=>{document.querySelector(".flight-section").classList.remove("is-collapsed");$("selectedFlightSummary").classList.add("hidden");$("cabinPanel").classList.add("step-hidden");$("sideStack").classList.add("step-hidden");selectedFlight=null;selectedSeat=null;reservation=null;renderFlights();document.querySelector(".flight-section").scrollIntoView({behavior:"smooth",block:"start"})});
-$("callsign").addEventListener("input",()=>{$("confirmSeat").disabled=!(selectedSeat&&$("callsign").value.trim())});
-$("confirmSeat").addEventListener("click",async()=>{const passenger=$("callsign").value.trim();if(!selectedFlight||!selectedSeat||!passenger)return;$("confirmSeat").disabled=true;try{if(db){const ref=doc(db,"flights",selectedFlight.id,"seats",selectedSeat);await runTransaction(db,async tx=>{const snap=await tx.get(ref);if(snap.exists())throw new Error("That seat has just been reserved. Choose another seat.");tx.set(ref,{uid:currentUser.uid,username:currentUser.email?.split("@")[0]||"",passenger,flightId:selectedFlight.id,seat:selectedSeat,reservedAt:serverTimestamp()})})}else{demoReservations[selectedFlight.id]=demoReservations[selectedFlight.id]||{};if(demoReservations[selectedFlight.id][selectedSeat])throw new Error("This seat is already reserved.");demoReservations[selectedFlight.id][selectedSeat]={passenger};window.reservedSeats=demoReservations[selectedFlight.id]}reservation={passenger,seat:selectedSeat};if(currentUser&&db)setDoc(doc(db,"users",currentUser.uid),{displayName:passenger,username:currentUser.email?.split("@")[0]||"",updatedAt:serverTimestamp()},{merge:true}).catch(console.error);renderTicket();$("boardingPass").classList.remove("hidden","ticket-in");void $("boardingPass").offsetWidth;$("boardingPass").classList.add("ticket-in");$("confirmSeat").classList.add("hidden");$("boardFlight").classList.remove("hidden");$("tasksPanel").classList.remove("step-hidden");$("tasksPanel").classList.add("step-reveal");renderSeats();$("tasksPanel").scrollIntoView({behavior:"smooth",block:"nearest"})}catch(error){alert(error.message||"Could not reserve your seat.");$("confirmSeat").disabled=false}});
-function renderTicket(){$("ticketFlight").textContent=`Flight ${selectedFlight.flightNumber||selectedFlight.id}`;$("ticketOrigin").textContent=selectedFlight.origin||"---";$("ticketDestination").textContent=selectedFlight.destination||"---";$("ticketOriginName").textContent=selectedFlight.originName||"Departure";$("ticketDestinationName").textContent=selectedFlight.destinationName||"Arrival";const duration=Math.max(0,Math.round((toDate(selectedFlight.arrivalAt)-toDate(selectedFlight.departureAt))/60000));$("ticketDuration").textContent=`${duration} MIN`;$("ticketPassenger").textContent=reservation.passenger;$("ticketSeat").textContent=reservation.seat;$("ticketDeparture").textContent=fmtDate(selectedFlight.departureAt);$("ticketDistance").textContent=`${Number(selectedFlight.distanceKm||0).toLocaleString()} KM`;$("ticketCode").textContent=`${selectedFlight.flightNumber||selectedFlight.id} / ${reservation.seat}`;barcode()}
-
-function renderTasks(){const markup=tasks.length?tasks.map((t,i)=>`<div class="task-row ${t.done?"done":""}"><input type="checkbox" data-task="${i}" ${t.done?"checked":""}><span>${escapeHtml(t.name)}</span></div>`).join(""):'<div class="task-empty">Your checklist is empty.</div>';$("taskList").innerHTML=markup;$("taskCount").textContent=`${String(tasks.length).padStart(2,"0")} TASKS`;$("hudTasks").innerHTML=tasks.length?tasks.map((t,i)=>`<div class="task-row ${t.done?"done":""}"><input type="checkbox" data-hud-task="${i}" ${t.done?"checked":""}><span>${escapeHtml(t.name)}</span></div>`).join(""):'<div class="task-empty">No study tasks added.</div>';document.querySelectorAll("[data-task],[data-hud-task]").forEach(el=>el.addEventListener("change",()=>{const i=Number(el.dataset.task??el.dataset.hudTask);toggleTask(i,el.checked)}))}
-function toggleTask(i,done){if(!tasks[i])return;tasks[i].done=done;renderTasks();saveProfile();if(tasks.length&&tasks.every(t=>t.done)&&flightStartedAt)finishFlight("All study tasks completed.")}
-$("addTask").addEventListener("click",()=>{const name=$("taskName").value.trim();if(!name)return;tasks.push({name,done:false});$("taskName").value="";renderTasks();saveProfile();$("taskName").focus()});$("taskName").addEventListener("keydown",e=>{if(e.key==="Enter")$("addTask").click()});
-$("toggleHudTasks").addEventListener("click",()=>{const hidden=$("hudTasks").classList.toggle("hidden");$("toggleHudTasks").textContent=hidden?"OPEN STUDY CHECKLIST ↓":"CLOSE STUDY CHECKLIST ↑"});
-$("boardFlight").addEventListener("click",()=>{if(!reservation||!selectedFlight)return;if(statusOf(selectedFlight)==="IN_FLIGHT"){alert("This flight has already departed. Please select another flight.");return}currentFlight=selectedFlight;flightStartedAt=Date.now();$("app").classList.add("hidden");$("flightMode").classList.add("active");$("hudBoarding").textContent=new Date(flightStartedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});$("hudTasks").classList.add("hidden");$("toggleHudTasks").textContent="OPEN STUDY CHECKLIST ↓";renderTasks();tickFlight();flightTimer=setInterval(tickFlight,500);wakeScreen()});
-function tickFlight(){if(!currentFlight)return;const dep=toDate(currentFlight.departureAt).getTime(),arr=toDate(currentFlight.arrivalAt).getTime(),now=Date.now(),duration=Math.max(1,arr-dep),progress=Math.max(0,Math.min(1,(now-dep)/duration)),left=Math.max(0,Math.ceil((arr-now)/1000));$("hh").textContent=String(Math.floor(left/3600)).padStart(2,"0");$("mm").textContent=String(Math.floor(left%3600/60)).padStart(2,"0");$("ss").textContent=String(left%60).padStart(2,"0");const distance=Number(currentFlight.distanceKm)||0,covered=Math.round(distance*progress),percent=Math.round(progress*100);$("hudCovered").textContent=covered.toLocaleString();$("hudLeft").textContent=Math.max(0,Math.round(distance-covered)).toLocaleString();$("journeyPercent").textContent=`${percent}%`;$("journeyFill").style.width=`${percent}%`;$("journeyPlane").style.left=`${percent}%`;$("journeyStart").textContent=currentFlight.origin||"DEPARTURE";$("journeyEnd").textContent=currentFlight.destination||"DESTINATION";if(now>=arr)finishFlight("Your flight has landed.")}
-function wakeScreen(){$("flightMode").classList.remove("dimmed");clearTimeout(dimTimer);dimTimer=setTimeout(()=>$("flightMode").classList.add("dimmed"),3500)}["pointermove","pointerdown","touchstart","keydown"].forEach(name=>document.addEventListener(name,()=>{if($("flightMode").classList.contains("active"))wakeScreen()},{passive:true}));
-function finishFlight(reason){if(!flightStartedAt)return;clearInterval(flightTimer);clearTimeout(dimTimer);$("flightMode").classList.remove("active","dimmed");$("app").classList.remove("hidden");const completed=tasks.filter(t=>t.done).length,earned=completed*25+Math.round((Number(currentFlight?.distanceKm)||0)/100),total=Number(localStorage.getItem("focusFlightXP")||0)+earned;localStorage.setItem("focusFlightXP",String(total));updatePilot();saveProfile();$("completionTitle").textContent=reason.includes("landed")?"Welcome to your destination":"Flight complete";$("completionMessage").textContent=`${reason} You completed ${completed} of ${tasks.length} study tasks.`;$("earnedXP").textContent=`+${earned} XP`;$("totalXP").textContent=`${total.toLocaleString()} XP`;$("newRank").textContent=rankFor(total).toUpperCase();$("completionModal").classList.remove("hidden");flightStartedAt=null;currentFlight=null}
-$("exitFlight").addEventListener("click",()=>finishFlight("You exited the flight early."));$("closeDebrief").addEventListener("click",()=>{$("completionModal").classList.add("hidden");window.scrollTo({top:0,behavior:"smooth"})});
-renderTasks();updatePilot();setAuthMode("login");startFirebase();
+draw();setInterval(draw,10000);setInterval(sessTick,1000);mode(S.mode||"pax");sessTick();
+})();
 </script>
 </body>
 </html>
