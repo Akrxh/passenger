@@ -456,7 +456,7 @@ button{font-family:inherit}
       <div class="auth-links"><button type="button" id="authSwitch">Create an account</button><span class="auth-help">USERNAME SIGN-IN</span></div>
       <p class="auth-foot">Use a username and password to sign in. No email address is requested. Your profile, study tasks and Air Miles are synced securely to your account.</p>
     </div>
-    <div class="auth-config-note" id="authConfigNote">Firebase Authentication and Firestore must be enabled. Passengers sign in using a username, not an email address.</div>
+    <div class="auth-config-note" id="authConfigNote">Passengers sign in with a username and password only. No email address is needed.</div>
   </div>
 </div>
 
@@ -548,7 +548,6 @@ button{font-family:inherit}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,getDocs,doc,getDoc,setDoc,onSnapshot,runTransaction,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* Firebase Web App config. Keep apiKey empty to use the included demo flights.
@@ -574,7 +573,7 @@ const demoFlights=[
  {id:"ff204",flightNumber:"FF 204",origin:"BLR",destination:"MUM",originName:"Bengaluru",destinationName:"Mumbai",distanceKm:840,departureAt:plusMinutes(18),arrivalAt:plusMinutes(108)},
  {id:"ff309",flightNumber:"FF 309",origin:"HYD",destination:"CHE",originName:"Hyderabad",destinationName:"Chennai",distanceKm:520,departureAt:plusMinutes(130),arrivalAt:plusMinutes(210)}
 ];
-let appInstance=null,auth=null,db=null,currentUser=null,authMode="login",profileSaveTimer=null,flightRefreshTimer=null;
+let appInstance=null,db=null,currentUser=null,authMode="login",profileSaveTimer=null,flightRefreshTimer=null;
 let flights=[],selectedFlight=null,selectedSeat=null,reservation=null,seatUnsubscribe=null;
 let tasks=[],currentFlight=null,flightStartedAt=null,flightTimer=null,dimTimer=null,demoReservations={};
 
@@ -617,44 +616,84 @@ function authMessage(error){
   "auth/weak-password":"Use a password with at least 6 characters.",
   "auth/too-many-requests":"Too many attempts. Wait a little and try again.",
   "auth/network-request-failed":"Network error. Check your internet connection.",
+  "auth/configuration-not-found":"Firebase Authentication isn't set up yet for this project. Open Firebase Console → Build → Authentication → Get started, then enable Email/Password.",
+  "permission-denied":"The database is blocking this. In Firebase → Firestore Database → Rules, allow access to the users collection (see setup note).",
+  "unavailable":"Can't reach the database. Check your internet connection.",
   "auth/operation-not-allowed":"Sign-in is not switched on yet. In Firebase, enable Authentication → Sign-in method → Email/Password."
  };
  return messages[code]||error?.message||"Sign-in failed. Please try again.";
 }
 function normalizeUsername(value){return value.trim().toLowerCase()}
 function validUsername(value){return /^[a-z0-9][a-z0-9._-]{2,19}$/.test(value)&&!/[._-]{2}/.test(value)}
-/* Same hidden identifier as before, so existing passenger accounts keep working. */
-function internalAuthEmail(username){return `${username}@accounts.focusflight.app`}
+const SESSION_KEY="dreamcore_session";
+const enc=new TextEncoder();
+async function hashPassword(pw,salt){
+ if(!(window.crypto&&crypto.subtle))throw new Error("Open this page over https to sign in.");
+ const key=await crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveBits"]);
+ const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:enc.encode(salt),iterations:100000,hash:"SHA-256"},key,256);
+ return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function newSalt(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(b=>b.toString(16).padStart(2,"0")).join("")}
+async function startSession(username){
+ localStorage.setItem(SESSION_KEY,JSON.stringify({u:username,exp:Date.now()+30*24*3600*1000}));
+ await enterApp(username);
+}
+async function enterApp(username){
+ /* email is only a compatibility shim: older code derives the username from it */
+ currentUser={uid:username,username,displayName:"",email:username+"@local"};
+ startMaintenanceWatch(true);
+ try{
+  await loadProfile(currentUser);
+  $("authScreen").classList.add("hidden");$("app").classList.remove("hidden");
+  await loadFlights();
+ }catch(error){
+  console.error("Could not open account:",error);
+  if(/no longer exists/.test(error.message))localStorage.removeItem(SESSION_KEY);
+  currentUser=null;
+  $("app").classList.add("hidden");$("authScreen").classList.remove("hidden");
+  setAuthError(error.code?authMessage(error):error.message);
+ }
+}
+function restoreSession(){
+ try{
+  const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"null");
+  if(s&&s.u&&s.exp>Date.now())return enterApp(s.u);
+ }catch(e){}
+ localStorage.removeItem(SESSION_KEY);
+}
 $("authForm").addEventListener("submit",async event=>{
  event.preventDefault();clearAuthError();
- if(!auth||!db){setAuthError("The account system is not connected. Check the Firebase configuration in this file.");return}
+ if(!db){setAuthError("The database is not connected. Check the Firebase configuration in this file.");return}
  const username=normalizeUsername($("authUsername").value);
  const password=$("authPassword").value;
  const callsign=$("authName").value.trim()||username;
  if(!validUsername(username)){setAuthError("Username: 3–20 characters, using letters, numbers, dots, underscores or hyphens, starting with a letter or number.");return}
  $("authSubmit").disabled=true;
  try{
+  const ref=doc(db,"users",username);
   if(authMode==="signup"){
    if(password.length<6)throw new Error("Use a password with at least 6 characters.");
-   /* The hidden sign-in email is unique per username, so Firebase itself rejects duplicates. */
-   const credential=await createUserWithEmailAndPassword(auth,internalAuthEmail(username),password);
-   await updateProfile(credential.user,{displayName:callsign}).catch(()=>{});
-   try{
-    await setDoc(doc(db,"users",credential.user.uid),{
-     username,displayName:callsign,airMiles:0,pilotRank:"Cadet",tasks:[],
-     createdAt:serverTimestamp(),updatedAt:serverTimestamp()
-    },{merge:true});
-   }catch(profileError){console.error("Profile setup failed (will retry on next save):",profileError)}
+   const salt=newSalt(),passHash=await hashPassword(password,salt);
+   await runTransaction(db,async tx=>{
+    const snap=await tx.get(ref);
+    if(snap.exists())throw new Error("That username is already taken. Choose another, or sign in.");
+    tx.set(ref,{username,displayName:callsign,salt,passHash,airMiles:0,pilotRank:"Cadet",tasks:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+   });
+   await startSession(username);
   }else{
-   await signInWithEmailAndPassword(auth,internalAuthEmail(username),password);
+   const snap=await getDoc(ref);
+   const d=snap.exists()?snap.data():null;
+   if(!d||!d.passHash||await hashPassword(password,d.salt)!==d.passHash)throw new Error("Wrong username or password.");
+   await startSession(username);
   }
  }catch(error){setAuthError(error.code?authMessage(error):error.message)}
  finally{$("authSubmit").disabled=false;$("authPassword").value=""}
 });
-$("accountButton").addEventListener("click",async()=>{
+$("accountButton").addEventListener("click",()=>{
  if(!currentUser)return;
- if(!confirm("Sign out of Dreamcore? Your saved account data will remain in Firestore."))return;
- await signOut(auth);
+ if(!confirm("Sign out of Dreamcore? Your saved account data will remain."))return;
+ localStorage.removeItem(SESSION_KEY);
+ location.reload();
 });
 function saveProfile(){
  if(!currentUser||!db)return;
@@ -673,17 +712,15 @@ function saveProfile(){
  },350);
 }
 async function loadProfile(user){
- const ref=doc(db,"users",user.uid);
- const snap=await getDoc(ref);
- const data=snap.exists()?snap.data():{};
- if(!snap.exists()){
-  await setDoc(ref,{displayName:user.displayName||"",username:user.email?.split("@")[0]||"",airMiles:0,pilotRank:"Cadet",tasks:[],createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true});
- }
+ const snap=await getDoc(doc(db,"users",user.uid));
+ if(!snap.exists())throw new Error("This account no longer exists. Create it again.");
+ const data=snap.data();
+ user.displayName=data.displayName||user.username;
  tasks=Array.isArray(data.tasks)?data.tasks.filter(t=>t&&typeof t.name==="string").map(t=>({name:t.name,done:!!t.done})): [];
  const xp=Number(data.airMiles??0);
  localStorage.setItem("focusFlightXP",String(Number.isFinite(xp)?xp:0));
  updatePilot();renderTasks();
- $("accountLabel").textContent=(data.username||user.email?.split("@")[0]||"ACCOUNT").slice(0,18).toUpperCase();
+ $("accountLabel").textContent=user.username.slice(0,18).toUpperCase();
 }
 async function loadFlights(){
  try{
@@ -740,32 +777,16 @@ function startMaintenanceWatch(quiet){
 
 function startFirebase(){
  if(!firebaseConfig.apiKey||!firebaseConfig.projectId){
-  $("authConfigNote").textContent="Firebase setup required: add your Web App config, enable Authentication → Email/Password, and create Firestore. Passengers only enter a username; Dreamcore uses a private internal sign-in identifier behind the scenes.";
+  $("authConfigNote").textContent="Firebase setup required: add your Web App config and create a Firestore database. Passengers only enter a username and password.";
   $("authConfigNote").classList.add("config-warning");
-  setAuthError("The account system needs your Firebase project configuration before sign-up or login can work.");
+  setAuthError("The account system needs your Firebase project configuration before sign-up or sign-in can work.");
   renderMaintenanceGate("open");
   return;
  }
  try{
-  appInstance=initializeApp(firebaseConfig);auth=getAuth(appInstance);db=getFirestore(appInstance);
+  appInstance=initializeApp(firebaseConfig);db=getFirestore(appInstance);
   startMaintenanceWatch();
-  onAuthStateChanged(auth,async user=>{
-   currentUser=user;
-   if(!user){
-    $("app").classList.add("hidden");$("authScreen").classList.remove("hidden");
-    $("accountLabel").textContent="ACCOUNT";return;
-   }
-   startMaintenanceWatch(true);
-   try{
-    await loadProfile(user);
-    $("authScreen").classList.add("hidden");$("app").classList.remove("hidden");
-    await loadFlights();
-   }catch(error){
-    console.error("Could not restore account:",error);
-    $("authScreen").classList.remove("hidden");
-    setAuthError("Signed in, but saved profile could not be loaded: "+error.message);
-   }
-  });
+  restoreSession();
  }catch(error){console.error(error);setAuthError("Firebase configuration is invalid: "+error.message);renderMaintenanceGate("open")}
 }
 
